@@ -1,26 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   TextInput,
   Text,
-  TouchableWithoutFeedback,
   TouchableOpacity,
-  FlatList,
+  Image,
+  StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  useAnimatedStyle,
-  withTiming,
-  useSharedValue,
-  withSpring,
-  Easing,
-  withSequence,
-  interpolate,
-} from "react-native-reanimated";
+import {
+  BottomSheetModal,
+  BottomSheetView,
+  BottomSheetModalProvider,
+  BottomSheetBackdrop,
+} from "@gorhom/bottom-sheet";
 import DoctorCard from "@/components/DoctorCard";
 import DATA from "@/data/NurseData";
 import { router } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+
 type SelectedFilter = {
   district: string | null;
   service: string | null;
@@ -28,101 +27,16 @@ type SelectedFilter = {
 
 const SearchNurseScreen = () => {
   const [text, onChangeText] = useState("");
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<SelectedFilter>({
     district: null,
     service: null,
   });
 
-  const height = useSharedValue(0);
-  const opacity = useSharedValue(0);
-  const scale = useSharedValue(0.95);
-  const translateY = useSharedValue(-10);
-
-  const animatedStyles = useAnimatedStyle(() => {
-    return {
-      maxHeight: height.value,
-      opacity: opacity.value,
-      transform: [
-        { scale: interpolate(scale.value, [0, 1], [0.95, 1]) },
-        { translateY: translateY.value },
-      ],
-      overflow: "hidden",
-    };
-  });
-
-  const toggleFilterDropdown = () => {
-    if (isFilterOpen) {
-      translateY.value = withSequence(
-        withSpring(0, {
-          damping: 20,
-          stiffness: 300,
-        }),
-        withTiming(-10, {
-          duration: 200,
-          easing: Easing.bezier(0.4, 0.0, 1, 1),
-        })
-      );
-
-      scale.value = withTiming(0.95, {
-        duration: 250,
-        easing: Easing.bezier(0.4, 0.0, 0.2, 1),
-      });
-
-      opacity.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.bezier(0.4, 0.0, 1, 1),
-      });
-
-      height.value = withTiming(0, {
-        duration: 300,
-        easing: Easing.bezier(0.4, 0.0, 0.2, 1),
-      });
-    } else {
-      // Animation mở
-      height.value = withSpring(350, {
-        damping: 18,
-        stiffness: 120,
-        mass: 0.7,
-        velocity: 8,
-        restDisplacementThreshold: 0.01,
-        restSpeedThreshold: 0.01,
-      });
-
-      opacity.value = withTiming(1, {
-        duration: 300,
-        easing: Easing.bezier(0.4, 0.0, 0.2, 1),
-      });
-
-      scale.value = withSpring(1, {
-        damping: 20,
-        stiffness: 300,
-        mass: 0.6,
-        velocity: 3,
-      });
-
-      translateY.value = withSpring(0, {
-        damping: 20,
-        stiffness: 300,
-        mass: 0.6,
-        velocity: 3,
-      });
-    }
-
-    setIsFilterOpen(!isFilterOpen);
-  };
-
-  const clearFilters = () => {
-    setSelectedFilter({ district: null, service: null });
-    console.log("Filters cleared");
-  };
-
-  const confirmFilters = () => {
-    console.log("Filters confirmed:", selectedFilter);
-  };
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = ["50%", "50%"];
 
   const filters = {
-    districts: ["Quận 1", "Quận 2", "Quận 3"],
+    districts: ["Quận 1", "Quận 2", "Quận 3","Quận 4","Quận 5","Quận 6","Quận 7","Quận 8"],
     services: ["Dịch vụ 1", "Dịch vụ 2", "Dịch vụ 3"],
   };
 
@@ -134,117 +48,280 @@ const SearchNurseScreen = () => {
         return { ...prev, [type]: value };
       }
     });
-    console.log(`${type} selected:`, value);
   };
 
   const handlePressCard = (id: string) => {
     router.push({
       pathname: "/detail-nurse/[id]",
-      params: { id }
+      params: { id },
     });
   };
 
-  return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="mt-4 flex-1">
-        <Text className="text-xl font-pbold ml-4">Tìm kiếm điều dưỡng</Text>
-        <View className="flex-row items-center m-4">
-          <View className="flex-row items-center bg-gray-100/20 rounded-3xl border-2 border-black px-4 flex-1">
-            <Ionicons name="search" size={20} color="#888" className="mr-2" />
-            <TextInput
-              className="flex-1 text-base text-gray-700"
-              onChangeText={onChangeText}
-              value={text}
-              placeholder="Tìm kiếm y tá"
-              placeholderTextColor="#888"
-            />
-          </View>
-          <TouchableWithoutFeedback onPress={toggleFilterDropdown}>
-            <View className="ml-2 p-3 border-2 border-[#64D1CB] rounded-full">
-              <Ionicons name="filter" size={20} color="#64D1CB" />
-            </View>
-          </TouchableWithoutFeedback>
+  const clearFilters = () => {
+    setSelectedFilter({ district: null, service: null });
+    console.log("Filters cleared");
+  };
+
+  const confirmFilters = () => {
+    closeBottomSheet();
+  };
+
+  const openBottomSheet = useCallback(() => {
+    bottomSheetModalRef.current?.present();
+  }, []);
+
+  const closeBottomSheet = useCallback(() => {
+    bottomSheetModalRef.current?.dismiss();
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
+  const renderHeader = () => (
+    <View style={{ marginBottom: 16 }}>
+      <Image
+        className="rounded-xl"
+        style={StyleSheet.absoluteFill}
+        source={{
+          uri: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzQI0ZnD1laFG92t0h-fYm-e25ZAomYYKYTCzaMhB-_wu5trmb2KYrhkVNaqsabqRLWto&usqp=CAU",
+        }}
+      />
+      <Text
+        style={{
+          fontSize: 20,
+          fontWeight: "bold",
+          marginLeft: 16,
+          marginTop: 16,
+        }}
+      >
+        Tìm kiếm điều dưỡng
+      </Text>
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          margin: 16,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            borderRadius: 24,
+            borderWidth: 2,
+            borderColor: "black",
+            paddingHorizontal: 16,
+            flex: 1,
+          }}
+        >
+          <Ionicons name="search" size={20} color="#888" />
+          <TextInput
+            style={{ flex: 1, fontSize: 16, color: "#555" }}
+            onChangeText={onChangeText}
+            value={text}
+            placeholder="Tìm kiếm điều dưỡng"
+            placeholderTextColor="#888"
+          />
         </View>
-
-        <Animated.View style={[animatedStyles]} className="border-b-2 pb-2">
-          <View>
-            <Text className="font-semibold text-gray-700 mb-2 ml-2">Quận</Text>
-            <View className="flex-row flex-wrap ml-2">
-              {filters.districts.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => handleFilterSelect("district", item)}
-                  className={`mr-2 mb-2 px-4 py-2 rounded-full border text-xs  ${
-                    selectedFilter.district === item
-                      ? "bg-[#64D1CB] border-[#64D1CB] text-white "
-                      : "bg-white border-[#64D1CB] border-2"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-psemibold ${
-                      selectedFilter.district === item
-                        ? "text-white"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text className="font-semibold text-gray-700 mt-4 mb-2 ml-2">
-              Dịch vụ
-            </Text>
-            <View className="flex-row flex-wrap ml-2">
-              {filters.services.map((item) => (
-                <TouchableOpacity
-                  key={item}
-                  onPress={() => handleFilterSelect("service", item)}
-                  className={`mr-2 mb-2 px-4 py-2 rounded-full border  ${
-                    selectedFilter.service === item
-                      ? "bg-[#64D1CB] text-white border-[#64D1CB]"
-                      : "bg-white border-[#64D1CB] border-2"
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-psemibold ${
-                      selectedFilter.service === item
-                        ? "text-white"
-                        : "text-gray-700"
-                    }`}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <View className="flex-row justify-between mx-4 mt-4">
-              <TouchableOpacity
-                onPress={clearFilters}
-                className="p-2 bg-white border-2 rounded-xl flex-1 mr-2"
-              >
-                <Text className="text-black text-center ml-2 font-pmedium text-xs">
-                  Xóa filter
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={confirmFilters}
-                className="p-2 bg-[#64D1CB] rounded-xl flex-1 ml-2"
-              >
-                <Text className="text-white text-center ml-2 font-psemibold text-xs">
-                  Xác nhận
-                </Text>
-              </TouchableOpacity>
-            </View>
+        <TouchableOpacity onPress={openBottomSheet} style={{ marginLeft: 8 }}>
+          <View
+            style={{
+              padding: 12,
+              borderWidth: 2,
+              borderColor: "#64D1CB",
+              borderRadius: 24,
+            }}
+          >
+            <Ionicons name="filter" size={20} color="#64D1CB" />
           </View>
-        </Animated.View>
-        <View className="flex-1">
-          <DoctorCard data={DATA} handlePress={handlePressCard} />
-        </View>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
+  );
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
+          <View style={{ flex: 1, marginTop: 16 }}>
+            <View style={{ flex: 1 }}>
+              <DoctorCard
+                data={DATA}
+                handlePress={handlePressCard}
+                ListHeaderComponent={renderHeader}
+              />
+            </View>
+
+            <BottomSheetModal
+              ref={bottomSheetModalRef}
+              snapPoints={snapPoints}
+              enablePanDownToClose
+              backdropComponent={renderBackdrop}
+              backgroundStyle={{
+                backgroundColor: "white",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                shadowColor: "#000",
+                shadowOffset: {
+                  width: 0,
+                  height: -4,
+                },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                elevation: 5,
+              }}
+              handleIndicatorStyle={{
+                backgroundColor: "#DEDEDE",
+                width: 40,
+                height: 4,
+              }}
+            >
+              <BottomSheetView style={{ paddingHorizontal: 16 }}>
+                <Text
+                  style={{ fontWeight: "600", color: "#555", marginBottom: 8 }}
+                >
+                  Quận
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                  {filters.districts.map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      onPress={() => handleFilterSelect("district", item)}
+                      style={{
+                        marginRight: 8,
+                        marginBottom: 8,
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        borderRadius: 15,
+                        borderWidth: 2,
+                        backgroundColor:
+                          selectedFilter.district === item
+                            ? "#64D1CB"
+                            : "white",
+                        borderColor: "#64D1CB",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "500",
+                          color:
+                            selectedFilter.district === item ? "white" : "#555",
+                        }}
+                      >
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text
+                  style={{
+                    fontWeight: "600",
+                    color: "#555",
+                    marginTop: 16,
+                    marginBottom: 8,
+                  }}
+                >
+                  Dịch vụ
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                  {filters.services.map((item) => (
+                    <TouchableOpacity
+                      key={item}
+                      onPress={() => handleFilterSelect("service", item)}
+                      style={{
+                        marginRight: 8,
+                        marginBottom: 8,
+                        paddingVertical: 8,
+                        paddingHorizontal: 16,
+                        borderRadius: 15,
+                        borderWidth: 2,
+                        backgroundColor:
+                          selectedFilter.service === item ? "#64D1CB" : "white",
+                        borderColor: "#64D1CB",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "500",
+                          color:
+                            selectedFilter.service === item ? "white" : "#555",
+                        }}
+                      >
+                        {item}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    marginTop: 16,
+                  }}
+                >
+                  <TouchableOpacity
+                    onPress={clearFilters}
+                    style={{
+                      flex: 1,
+                      padding: 12,
+                      backgroundColor: "white",
+                      borderWidth: 2,
+                      borderRadius: 8,
+                      marginRight: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        textAlign: "center",
+                        fontWeight: "500",
+                        fontSize: 12,
+                        color: "black",
+                      }}
+                    >
+                      Xóa filter
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={confirmFilters}
+                    style={{
+                      flex: 1,
+                      padding: 12,
+                      backgroundColor: "#64D1CB",
+                      borderRadius: 8,
+                      marginLeft: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        textAlign: "center",
+                        fontWeight: "600",
+                        fontSize: 12,
+                        color: "white",
+                      }}
+                    >
+                      Xác nhận
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </BottomSheetView>
+            </BottomSheetModal>
+          </View>
+        </SafeAreaView>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 };
 

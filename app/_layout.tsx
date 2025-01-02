@@ -36,11 +36,25 @@ export default function RootLayout() {
     return null;
   }
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        animation: "fade",
+        presentation: "modal",
+        animationDuration: 200,
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="detail-nurse/[id]" options={{title:""}} />
+      <Stack.Screen
+        name="detail-nurse/[id]"
+        options={{ title: "", headerShown: false }}
+      />
+      <Stack.Screen name="(news)" options={{ title: "", headerShown: false }} />
+      <Stack.Screen
+        name="(create)"
+        options={{ title: "", headerShown: false }}
+      />
     </Stack>
   );
 }

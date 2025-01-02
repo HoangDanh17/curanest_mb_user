@@ -1,25 +1,26 @@
-import { Tabs, useRouter } from "expo-router";
+import { Tabs } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useEffect } from "react";
+import { Platform } from "react-native";
 
 const RootLayout = () => {
-  const router = useRouter();
-  // const { token, setToken, isTokenValid } = useAuthStore();
-
-  // useEffect(() => {
-  //   const checkAuth = async () => {
-  //     const savedToken = await AsyncStorage.getItem("authToken");
-  //     if (savedToken) {
-  //       setToken(savedToken);
-  //     } else {
-  //       router.replace("/(auth)/login");
-  //     }
-  //   };
-  //   checkAuth();
-  // }, [token, setToken, router]);
-
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={{
+        tabBarStyle: {
+          height: Platform.OS === "ios" ? 90 : 60,
+          paddingBottom: Platform.OS === "ios" ? 30 : 10,
+          paddingTop: 10,
+          backgroundColor: "white",
+          borderTopWidth: 1,
+          borderTopColor: "#f1f1f1",
+          elevation: 0,
+        },
+        tabBarActiveTintColor: "#41f3ea",
+        tabBarInactiveTintColor: "#94a3b8",
+        tabBarHideOnKeyboard: true,
+        animation: "fade",
+      }}
+    >
       <Tabs.Screen
         name="home"
         options={{
@@ -27,7 +28,7 @@ const RootLayout = () => {
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="home" color={color} size={size} />
           ),
-          title: "Home",
+          title: "",
         }}
       />
       <Tabs.Screen
@@ -37,7 +38,7 @@ const RootLayout = () => {
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="search" color={color} size={size} />
           ),
-          title: "Tìm kiếm",
+          title: "",
         }}
       />
       <Tabs.Screen
@@ -45,9 +46,9 @@ const RootLayout = () => {
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="schedule" color={color} size={size} />
+            <MaterialIcons name="calendar-month" color={color} size={size} />
           ),
-          title: "Lịch hẹn",
+          title: "",
         }}
       />
       <Tabs.Screen
@@ -55,9 +56,9 @@ const RootLayout = () => {
         options={{
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="people" color={color} size={size} />
+            <MaterialIcons name="person-outline" color={color} size={size} />
           ),
-          title: "Profile",
+          title: "",
         }}
       />
     </Tabs>

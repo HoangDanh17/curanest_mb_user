@@ -85,9 +85,11 @@ const DoctorCardFlat = ({
 const DoctorCard = ({
   data,
   handlePress,
+  ListHeaderComponent,
 }: {
   data: Doctor[];
   handlePress: (id: string) => void;
+  ListHeaderComponent?: () => React.JSX.Element;
 }) => (
   <FlatList
     data={data}
@@ -97,6 +99,7 @@ const DoctorCard = ({
     keyExtractor={(item) => item.id}
     numColumns={2}
     contentContainerStyle={{ padding: CARD_MARGIN }}
+    ListHeaderComponent={ListHeaderComponent}
     showsVerticalScrollIndicator={false}
     ListFooterComponent={() => (
       <View className="my-4 mb-8 items-center">

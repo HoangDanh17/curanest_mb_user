@@ -87,6 +87,8 @@ const HomeScreen = () => {
                 onPress={() => {
                   if (item.id === "1") {
                     router.push("/(tabs)/search");
+                  } else if (item.id === "3") {
+                    router.push("/(news)/news");
                   } else {
                     alert(`Bạn đã nhấn vào ${item.label}`);
                   }
@@ -158,7 +160,10 @@ const HomeScreen = () => {
                   ))}
                 </View>
                 <View className="flex flex-row justify-between items-center mt-4">
-                  <TouchableOpacity className="bg-blue-500 py-2 px-4 rounded-xl text-xs font-pmedium">
+                  <TouchableOpacity
+                    className="bg-blue-500 py-2 px-4 rounded-xl text-xs font-pmedium"
+                    onPress={() => router.push("/create-appoinment")}
+                  >
                     <Text className="text-white font-psemibold">Đặt lịch</Text>
                   </TouchableOpacity>
                   <TouchableOpacity className="bg-red-500 py-2 px-4 rounded-xl text-xs font-pmedium">

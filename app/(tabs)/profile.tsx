@@ -2,7 +2,6 @@ import {
   View,
   Text,
   Image,
-  TouchableOpacity,
   ImageBackground,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -73,7 +72,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           </View>
         </View>
-      </ImageBackground>
+      </ImageBackground>      
     </SafeAreaView>
   );
 };
