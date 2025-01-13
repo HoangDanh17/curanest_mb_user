@@ -179,6 +179,7 @@ const LoginScreen: React.FC = () => {
           onChangeText={(value) => handleInputChange("phoneNumber", value)}
           autoCapitalize="none"
           editable={!loading}
+          keyboardType="numeric"
         />
       </Animated.View>
       <Animated.View className="w-full" style={{ transform: [{ translateX: passwordInputAnimation }] }}>

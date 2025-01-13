@@ -55,6 +55,14 @@ export default function RootLayout() {
         name="(create)"
         options={{ title: "", headerShown: false }}
       />
+      <Stack.Screen
+        name="detail-appointment/[id]"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="(profile)"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

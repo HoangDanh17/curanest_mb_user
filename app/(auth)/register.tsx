@@ -221,6 +221,7 @@ const RegisterScreen = () => {
             value={form.phoneNumber}
             onChangeText={(value) => handleInputChange("phoneNumber", value)}
             autoCapitalize="none"
+            keyboardType="numeric"
             editable={!loading}
           />
         </Animated.View>
