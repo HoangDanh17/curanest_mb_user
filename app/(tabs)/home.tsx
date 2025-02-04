@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,10 @@ import WelcomeImage from "@/assets/images/homepage.png";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ButtonMenu from "@/components/ButtonMenu";
 import { MaterialIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
+import { Patient, PatientRes } from "@/types/patient";
+import patientApiRequest from "@/app/api/patientApi";
+import { calculateAge } from "@/lib/utils";
 
 const { width, height } = Dimensions.get("window");
 
@@ -31,6 +34,7 @@ const buttonData = [
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
+  const [patientList, setPatientList] = useState<Patient[]>();
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -38,6 +42,21 @@ const HomeScreen = () => {
       </View>
     );
   }
+  async function fetchPatientList() {
+    try {
+      const response = await patientApiRequest.getAllPatient();
+      setPatientList(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+    }
+  }
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPatientList();
+      console.log("1");
+    }, [])
+  );
 
   return (
     <SafeAreaView className="bg-white h-full">
@@ -109,66 +128,80 @@ const HomeScreen = () => {
         </View>
         <View className="flex flex-row items-center justify-between mx-4 mt-4">
           <Text className=" text-lg font-pbold">Hồ sơ bệnh nhân</Text>
-          <TouchableOpacity className="bg-green-600 p-1 px-6 rounded-2xl">
+          <TouchableOpacity
+            className="bg-green-600 p-1 px-6 rounded-2xl"
+            onPress={() => router.push("/create-patient")}
+          >
             <Text className="text-white font-psemibold">Tạo hồ sơ</Text>
           </TouchableOpacity>
         </View>
         <View className="mt-4">
           <FlatList
-            data={[
-              {
-                id: "1",
-                name: "Nguyễn Văn A",
-                age: 58,
-                services: ["Vệ sinh", "Thay băng"],
-              },
-              { id: "2", name: "Lê Thị B", age: 45, services: ["Thay băng"] },
-              { id: "3", name: "Trần Văn C", age: 70, services: ["Vệ sinh"] },
-            ]}
+            data={patientList}
             renderItem={({ item }) => (
               <View
-                className="bg-white shadow-md rounded-lg p-4 mr-4"
+                className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-4 mr-6"
                 style={{
-                  width: width * 0.7,
-                  borderWidth: 1,
-                  borderColor: "#ddd",
+                  width: width * 0.75,
+                  elevation: 3,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
                 }}
               >
-                <View className="flex flex-row items-center">
-                  <View
-                    className="bg-black text-white rounded-full flex items-center justify-center"
-                    style={{ width: 50, height: 50 }}
-                  >
-                    <Text className="text-white font-pbold">
-                      {item.name.charAt(0)}
+                <View className="bg-indigo-200 p-4 border-b border-gray-100">
+                  <Text className="text-xl font-pbold text-blue-800">
+                    {item["full-name"]}
+                  </Text>
+                </View>
+
+                <View className="p-4 gap-2">
+                  <View className="flex-row items-center justify-between ">
+                    <Text className="text-gray-600 font-pmedium">
+                      Số điện thoại:
+                    </Text>
+                    <Text className="text-black font-psemibold ml-2">
+                      {item["phone-number"]}
                     </Text>
                   </View>
-                  <View className="ml-4">
-                    <Text className="text-lg font-pbold">{item.name}</Text>
-                    <Text className="text-gray-500">Tuổi: {item.age}</Text>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-gray-600 font-pmedium">Tuổi:</Text>
+                    <Text className="text-black font-psemibold ml-2">
+                      {calculateAge(item.dob)}
+                    </Text>
                   </View>
-                </View>
-                <Text className="mt-2 font-psemibold">Dịch vụ:</Text>
-                <View className="flex flex-row flex-wrap mt-1">
-                  {item.services.map((service, index) => (
-                    <Text
-                      key={index}
-                      className="bg-purple-100 text-purple-800 py-1 px-3 rounded-full mr-2 mb-2 text-sm"
+
+                  <View className="mb-4">
+                    <Text className="text-gray-600 font-pmedium mb-2">
+                      Địa chỉ:
+                    </Text>
+                    <View className="bg-gray-100 rounded-xl p-3">
+                      <Text className="text-gray-800 font-pmedium">
+                        {item.address}
+                        {item.ward ? `, ${item.ward}` : ""}
+                        {item.district ? `, ${item.district}` : ""}
+                        {item.city ? `, ${item.city}` : ""}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="flex flex-row justify-between">
+                    <TouchableOpacity
+                      className="bg-blue-500 py-2 px-2 rounded-xl flex-1 mr-2"
+                      onPress={() => router.push("/create-appoinment")}
                     >
-                      {service}
-                    </Text>
-                  ))}
-                </View>
-                <View className="flex flex-row justify-between items-center mt-4">
-                  <TouchableOpacity
-                    className="bg-blue-500 py-2 px-4 rounded-xl text-xs font-pmedium"
-                    onPress={() => router.push("/create-appoinment")}
-                  >
-                    <Text className="text-white font-psemibold">Đặt lịch</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity className="bg-red-500 py-2 px-4 rounded-xl text-xs font-pmedium">
-                    <Text className="text-white font-psemibold">Xóa</Text>
-                  </TouchableOpacity>
+                      <Text className="text-white font-psemibold text-center">
+                        Đặt lịch
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity className="bg-red-500 py-2 px-2 rounded-xl flex-1 ml-2">
+                      <Text className="text-white font-psemibold text-center">
+                        Xóa
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             )}
@@ -176,9 +209,14 @@ const HomeScreen = () => {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
+            ListEmptyComponent={() => (
+              <Text className="mt-14 font-psemibold text-gray-400 items-center ml-10">
+                Không có hồ sơ bệnh nhân nào
+              </Text>
+            )}
           />
         </View>
-        <View className="mb-16"></View>
+        <View className="mb-10"></View>
       </ScrollView>
     </SafeAreaView>
   );

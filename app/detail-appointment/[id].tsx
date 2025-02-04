@@ -65,7 +65,10 @@ const DetailAppointmentScreen = () => {
     { name: "Nguyễn Văn B", time: "8:00 - 9:00", note: "Đã khám tim mạch" },
     { name: "Nguyễn Văn C", time: "8:00 - 9:00", note: "Đã khám tim mạch" },
   ];
-
+  const feedback = {
+    rating: 4, // Rating từ 1 đến 5
+    comment: "Dịch vụ tốt, nhân viên nhiệt tình và chuyên nghiệp. Tuy nhiên, cần cải thiện thời gian chờ."
+  };
   return (
     <SafeAreaView>
       <ScrollView className="bg-white h-full p-4">
@@ -167,6 +170,22 @@ const DetailAppointmentScreen = () => {
                 })}
               </View>
             </View>
+            <View className="mt-6 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+          <Text className="text-xl font-psemibold mb-4 text-blue-600 text-center">
+            Đánh giá từ khách hàng
+          </Text>
+          <View className="p-4 border-t border-gray-200">
+            <Text className="text-gray-700 flex-row items-center">
+              <Text className="text-yellow-400 text-lg">
+                {"★".repeat(feedback.rating)}
+                {"☆".repeat(5 - feedback.rating)}
+              </Text>
+            </Text>
+            <View className="mt-1">
+              <Text className="text-gray-600 font-pmedium">{feedback.comment}</Text>
+            </View>
+          </View>
+        </View>
           </View>
         </View>
 

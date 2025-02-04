@@ -11,55 +11,116 @@ import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
+import ApiService, { District } from "@/app/api/ApiService";
+
+interface InfoItemProps {
+  label: string;
+  value: string;
+  isEditing: boolean;
+  onChangeText: (text: string) => void;
+  disabled?: boolean;
+}
+
+interface SelectItemProps {
+  label: string;
+  value: string;
+  items: string[];
+  onValueChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+interface SectionCardProps {
+  title: string;
+  children: React.ReactNode;
+}
+
+interface NurseData {
+  avatar: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  dateOfBirth: string;
+  identityCard: string;
+  address: string;
+  ward: string;
+  district: string;
+  city: string;
+  gender: string;
+}
 
 const RelativesProfileScreen = () => {
   const [isEditing, setIsEditing] = useState(false);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedWards, setSelectedWards] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const cities = ["TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng"];
-  const districts: Record<string, string[]> = {
-    "TP. Hồ Chí Minh": ["Quận 1", "Quận 2", "Quận 3"],
-    "Hà Nội": ["Ba Đình", "Hoàn Kiếm", "Hai Bà Trưng"],
-    "Đà Nẵng": ["Hải Châu", "Thanh Khê", "Sơn Trà"],
-  };
-  const wards: Record<string, string[]> = {
-    "Quận 1": ["Bến Nghé", "Bến Thành", "Cầu Kho"],
-    "Ba Đình": ["Phúc Xá", "Trúc Bạch", "Vĩnh Phúc"],
-    "Hải Châu": ["Hải Châu 1", "Hải Châu 2", "Nam Dương"],
-  };
-
-  const [nurseData, setNurseData] = useState({
-    avatar:
-      "https://mcdn.coolmate.me/image/March2023/cong-cu-anh-che-meme-moi-nhat-1456_232.jpg",
+  const [nurseData, setNurseData] = useState<NurseData>({
+    avatar: "https://mcdn.coolmate.me/image/March2023/cong-cu-anh-che-meme-moi-nhat-1456_232.jpg",
     firstName: "Nguyễn",
     lastName: "Văn A",
     phone: "0123456789",
     email: "nguyenvana@email.com",
     dateOfBirth: "01/01/1990",
     identityCard: "001099123456",
-    address: "123 Đường ABC",
-    ward: "",
-    district: "",
-    city: "",
+    address: "123 Đường Nguyễn Thị Minh Khai",
+    ward: "Phường Bến Nghé",
+    district: "Quận 1",
+    city: "TP. Hồ Chí Minh",
     gender: "Nam",
   });
 
-  const [editData, setEditData] = useState(nurseData);
-  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
-  const [availableWards, setAvailableWards] = useState<string[]>([]);
+  const [editData, setEditData] = useState<NurseData>(nurseData);
 
   useEffect(() => {
-    if (editData.city) {
-      setAvailableDistricts(districts[editData.city] || []);
-      setEditData((prev) => ({ ...prev, district: "", ward: "", address: "" }));
-    }
-  }, [editData.city]);
+    const fetchInitialData = async () => {
+      try {
+        setIsLoading(true);
+        const apiService = ApiService.getInstance();
+        const districtsData = await apiService.fetchDistricts();
+        setDistricts(districtsData);
+        
+        if (nurseData.district) {
+          const initialDistrict = districtsData.find(d => d.name === nurseData.district);
+          if (initialDistrict) {
+            const wardsData = await apiService.fetchWardsByDistrict(initialDistrict.code);
+            setSelectedWards(wardsData);
+          }
+        }
+      } catch (error) {
+        Alert.alert("Error", "Failed to fetch initial data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    if (editData.district) {
-      setAvailableWards(wards[editData.district] || []);
-      setEditData((prev) => ({ ...prev, ward: "", address: "" }));
+    fetchInitialData();
+  }, []);
+
+  const handleSelectDistrict = async (districtName: string) => {
+    try {
+      setIsLoading(true);
+      const selectedDistrict = districts.find((d) => d.name === districtName);
+
+      if (selectedDistrict) {
+        const apiService = ApiService.getInstance();
+        const wardsData = await apiService.fetchWardsByDistrict(
+          selectedDistrict.code
+        );
+        setSelectedWards(wardsData);
+        setEditData((prev) => ({
+          ...prev,
+          district: districtName,
+          ward: "",
+          address: "",
+        }));
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to fetch wards");
+    } finally {
+      setIsLoading(false);
     }
-  }, [editData.district]);
+  };
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -94,19 +155,7 @@ const RelativesProfileScreen = () => {
     setIsEditing(false);
   };
 
-  const InfoItem = ({
-    label,
-    value,
-    isEditing,
-    onChangeText,
-    disabled = false,
-  }: {
-    label: string;
-    value: string;
-    isEditing: boolean;
-    onChangeText: (text: string) => void;
-    disabled?: boolean;
-  }) => (
+  const InfoItem = ({ label, value, isEditing, onChangeText, disabled = false }: InfoItemProps) => (
     <View className="flex-row py-4 border-b border-gray-100 items-center">
       <View className="w-[40%]">
         <Text className="text-md font-pregular text-gray-500">{label}</Text>
@@ -128,19 +177,7 @@ const RelativesProfileScreen = () => {
     </View>
   );
 
-  const SelectItem = ({
-    label,
-    value,
-    items,
-    onValueChange,
-    disabled = false,
-  }: {
-    label: string;
-    value: string;
-    items: string[];
-    onValueChange: (value: string) => void;
-    disabled?: boolean;
-  }) => (
+  const SelectItem = ({ label, value, items, onValueChange, disabled = false }: SelectItemProps) => (
     <View className="flex-row py-4 border-b border-gray-100 items-center">
       <View className="w-[40%]">
         <Text className="text-md font-pregular text-gray-500">{label}</Text>
@@ -154,7 +191,7 @@ const RelativesProfileScreen = () => {
             style={{ backgroundColor: disabled ? "#f3f4f6" : "white" }}
           >
             <Picker.Item label="Chọn..." value="" />
-            {items.map((item: string) => (
+            {items.map((item) => (
               <Picker.Item key={item} label={item} value={item} />
             ))}
           </Picker>
@@ -167,13 +204,7 @@ const RelativesProfileScreen = () => {
     </View>
   );
 
-  const SectionCard = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
+  const SectionCard = ({ title, children }: SectionCardProps) => (
     <View className="bg-white/80 backdrop-blur-md mt-4 rounded-2xl overflow-hidden shadow-sm">
       <LinearGradient
         colors={["rgba(255,255,255,0.9)", "rgba(255,255,255,0.8)"]}
@@ -198,7 +229,6 @@ const RelativesProfileScreen = () => {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {/* Header Profile Section */}
         <View className="bg-white/80 backdrop-blur-md rounded-2xl overflow-hidden shadow-sm">
           <LinearGradient
             colors={["rgba(240,245,255,0.9)", "rgba(255,255,255,0.8)"]}
@@ -249,7 +279,6 @@ const RelativesProfileScreen = () => {
           </LinearGradient>
         </View>
 
-        {/* Personal Information Section */}
         <SectionCard title="Thông tin cá nhân">
           <View className="gap-1">
             <InfoItem
@@ -309,38 +338,35 @@ const RelativesProfileScreen = () => {
 
         <SectionCard title="Địa chỉ">
           <View className="gap-1">
-            <SelectItem
+            <InfoItem
               label="Thành phố"
               value={editData.city}
-              items={cities}
-              onValueChange={(value) =>
-                setEditData({ ...editData, city: value })
-              }
+              isEditing={isEditing}
+              onChangeText={() => {}}
+              disabled={true}
             />
             <SelectItem
               label="Quận"
               value={editData.district}
-              items={availableDistricts}
-              onValueChange={(value) =>
-                setEditData({ ...editData, district: value })
-              }
-              disabled={!editData.city}
+              items={districts.map((d) => d.name)}
+              onValueChange={handleSelectDistrict}
+              disabled={isLoading}
             />
             <SelectItem
               label="Phường"
               value={editData.ward}
-              items={availableWards}
+              items={selectedWards}
               onValueChange={(value) =>
-                setEditData({ ...editData, ward: value })
+                setEditData((prev) => ({ ...prev, ward: value }))
               }
-              disabled={!editData.district}
+              disabled={!editData.district || isLoading}
             />
             <InfoItem
-              label="Địa chỉ chi tiết"
+              label="Địa chỉ"
               value={editData.address}
               isEditing={isEditing}
               onChangeText={(text) =>
-                setEditData({ ...editData, address: text })
+                setEditData((prev) => ({ ...prev, address: text }))
               }
               disabled={!editData.ward}
             />

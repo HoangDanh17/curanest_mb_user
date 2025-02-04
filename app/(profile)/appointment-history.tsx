@@ -211,26 +211,12 @@ const AppointmentHistoryScreen = () => {
                   </View>
                 </View>
 
-                {/* Rating section */}
-                <View className="p-4 border-t border-gray-200">
-                  <Text className="text-gray-700 flex-row items-center">
-                    Đánh giá:{" "}
-                    <Text className="text-yellow-400 text-lg">
-                      {"★".repeat(feedback.rating)}
-                      {"☆".repeat(5 - feedback.rating)}
-                    </Text>
-                  </Text>
-                  <View className="mt-1">
-                    <Text className="text-gray-600">{feedback.comment}</Text>
-                  </View>
-                </View>
-
                 {/* Button section */}
                 <View className="p-4 border-t border-gray-200 flex items-center">
                   <TouchableOpacity
                     className="bg-orange-100 px-4 py-2 rounded-lg"
                     onPress={() => {
-                     router.push("/detail-appointment/[id]")
+                      router.push("/detail-appointment/[id]");
                     }}
                   >
                     <Text className="text-orange-700">Xem chi tiết lịch</Text>

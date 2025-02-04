@@ -11,30 +11,9 @@ import { useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
-
-type NurseData = {
-  name: string;
-  position: string;
-  rating: number;
-  reviews: number;
-  location: string;
-  experience: string;
-  patientsChecked: number;
-  slogan: string;
-  image: string;
-  services: string[];
-};
-
-interface DayOfWeek {
-  [key: string]: string;
-}
-
-type AvailabilityData = {
-  [key: string]: string[];
-};
+import { AvailabilityData, DayOfWeek, NurseData } from "@/types/nurse";
 
 const DetailNurseScreen = () => {
-  
   const nurseData: NurseData = {
     name: "Nguyễn Thị Lan",
     position: "Điều dưỡng Tâm lý tại Bệnh viện Tâm thần Trung ương",
@@ -54,68 +33,53 @@ const DetailNurseScreen = () => {
     ],
   };
 
-  const [currentWeekDays, setCurrentWeekDays] = useState<Date[]>([]);
+  const [twoWeekDays, setTwoWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
 
   const nurseAvailability: AvailabilityData = {
-    "2024-12-25": ["08:00 - 09:00", "11:00 - 12:00"],
-    "2024-12-26": [
+    "2025-01-17": ["08:00 - 09:00", "11:00 - 12:00"],
+    "2025-01-16": [
       "08:00 - 09:00",
       "09:00 - 10:00",
       "14:00 - 15:00",
       "15:00 - 16:00",
     ],
-    "2025-01-07": ["10:00 - 11:00", "14:00 - 15:00"],
-    "2025-01-08": ["08:00 - 09:00", "15:00 - 16:00", "16:00 - 17:00"],
+    "2025-01-14": ["10:00 - 11:00", "14:00 - 15:00"],
+    "2025-01-13": ["08:00 - 09:00", "15:00 - 16:00", "16:00 - 17:00"],
   };
 
   useEffect(() => {
-    const updateWeekDays = (referenceDate: Date) => {
-      const currentDay = referenceDate.getDay();
-      const currentMonday = new Date(referenceDate);
-      currentMonday.setDate(
-        referenceDate.getDate() - (currentDay === 0 ? 6 : currentDay - 1)
-      );
+    const initializeTwoWeeks = () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
       const days: Date[] = [];
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(currentMonday);
-        day.setDate(currentMonday.getDate() + i);
+      for (let i = 0; i < 14; i++) {
+        const day = new Date(today);
+        day.setDate(today.getDate() + i);
         days.push(day);
       }
 
-      setCurrentWeekDays(days);
-      setSelectedDate(new Date(referenceDate));
+      setTwoWeekDays(days);
+      setSelectedDate(today);
     };
 
-    updateWeekDays(currentDate);
-  }, [currentDate]);
+    initializeTwoWeeks();
+  }, []);
 
   const getAvailableTimeSlots = (date: Date) => {
     const dateString = date.toISOString().split("T")[0];
     return nurseAvailability[dateString] || [];
   };
 
+  const hasSlotsForDate = (date: Date) => {
+    return getAvailableTimeSlots(date).length > 0;
+  };
+
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
     setSelectedTimeSlot(null);
-  };
-
-  const handlePreviousWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() - 7);
-
-    if (newDate.getTime() >= new Date().setHours(0, 0, 0, 0)) {
-      setCurrentDate(newDate);
-    }
-  };
-
-  const handleNextWeek = () => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + 7);
-    setCurrentDate(newDate);
   };
 
   const getDayOfWeek = (day: string): string => {
@@ -175,12 +139,28 @@ const DetailNurseScreen = () => {
     );
   };
 
+  const [currentWeek, setCurrentWeek] = useState<number>(1);
+  const handlePreviousWeek = () => {
+    if (currentWeek === 2) {
+      setCurrentWeek(1);
+    }
+  };
+
+  const handleNextWeek = () => {
+    if (currentWeek === 1) {
+      setCurrentWeek(2);
+    }
+  };
+
   return (
-    <SafeAreaView className="bg-white flex-1">
-      <ScrollView>
-        <HeaderBack/>
+    <SafeAreaView>
+      <ScrollView className="bg-white h-full ">
+        <View className="pt-4 pl-4">
+          <HeaderBack />
+        </View>
         <View className="flex flex-row justify-center items-center">
           <View className="mt-2 rounded-xl p-5 w-full mb-4">
+            {/* Nurse Info Section */}
             <View className="flex flex-row p-4 bg-gray-50 rounded-xl shadow-md">
               <Image
                 source={{ uri: nurseData.image }}
@@ -205,6 +185,7 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
+            {/* Stats Section */}
             <View className="flex-row justify-between mt-4 w-full">
               <View className="items-center flex-1">
                 <Text className="text-[#64D1CB] font-psemibold">
@@ -230,19 +211,21 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
+            {/* Slogan Section */}
             <View className="bg-yellow-100 p-3 mt-4 rounded-md">
               <Text className="text-yellow-700 text-center font-medium italic">
                 {nurseData.slogan}
               </Text>
             </View>
 
+            {/* Services Section */}
             <View className="mt-4">
               <Text className="text-gray-700 font-pbold">Dịch vụ:</Text>
               <View className="mt-2 flex-row flex-wrap gap-2">
                 {nurseData.services.map((service, index) => (
                   <View
                     key={index}
-                    className="bg-[#64D1CB] px-4 py-2 rounded-lg border border-blue-200 shadow-md"
+                    className="bg-[#FEB60D] px-4 py-2 rounded-lg border border-[#FEB60D] shadow-md"
                   >
                     <Text className="text-white text-sm font-psemibold ">
                       {service}
@@ -252,84 +235,136 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
-            <View className="mt-4 flex-row justify-between items-center px-4">
-              <Text className="text-gray-800 text-lg font-bold">
-                Lịch làm việc tuần này
+            {/* Calendar Section Header */}
+            <View className="mt-4 px-4">
+              <Text className="text-gray-800 text-lg font-bold mt-2">
+                Lịch làm việc 2 tuần tới
               </Text>
-
-              <View className="flex-row mt-4">
-                <TouchableOpacity
-                  onPress={handlePreviousWeek}
-                  className="p-2 bg-gray-100 rounded-full"
-                  disabled={
-                    currentWeekDays[0] &&
-                    currentWeekDays[0].getTime() <
-                      new Date().setHours(0, 0, 0, 0)
-                  }
-                >
-                  <Ionicons
-                    name="chevron-back"
-                    size={20}
-                    color={
-                      currentWeekDays[0] &&
-                      currentWeekDays[0].getTime() <
-                        new Date().setHours(0, 0, 0, 0)
-                        ? "lightgray"
-                        : "gray"
-                    }
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={handleNextWeek}
-                  className="p-2 bg-gray-100 rounded-full ml-4"
-                >
-                  <Ionicons name="chevron-forward" size={20} color="gray" />
-                </TouchableOpacity>
-              </View>
             </View>
 
-            <View className="flex-row items-center justify-between mt-2">
-              <View className="flex-row justify-between flex-1 mx-2">
-                {currentWeekDays.map((item, index) => {
-                  const isSelected =
-                    item.toDateString() === selectedDate?.toDateString();
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => handleSelectDate(item)}
-                      className={`flex justify-center items-center p-2 rounded-2xl ${
-                        isSelected
-                          ? "bg-[#64D1CB] border border-[#64D1CB]"
-                          : "bg-white border-2 border-[#64D1CB]"
+            {/* Calendar Days */}
+            <View className="flex-row justify-between mt-4 px-2">
+              {twoWeekDays.slice(0, 7).map((item, index) => {
+                const isSelected =
+                  item.toDateString() === selectedDate?.toDateString();
+                const hasSlots = hasSlotsForDate(item);
+                const isDisabled =
+                  item.getTime() < new Date().setHours(0, 0, 0, 0);
+                const isToday =
+                  item.toDateString() === new Date().toDateString();
+
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => !isDisabled && handleSelectDate(item)}
+                    disabled={isDisabled}
+                    className={`flex items-center justify-center p-2 rounded-xl ${
+                      isDisabled
+                        ? "bg-gray-50 border border-gray-200"
+                        : isSelected
+                        ? "bg-[#64D1CB] border border-[#64D1CB]"
+                        : hasSlots
+                        ? "bg-white border border-[#64D1CB]"
+                        : "bg-white border border-gray-200"
+                    }`}
+                    style={{
+                      width: 45,
+                      height: 65,
+                    }}
+                  >
+                    <Text
+                      className={`text-sm font-medium ${
+                        isDisabled
+                          ? "text-gray-400"
+                          : isSelected
+                          ? "text-white"
+                          : "text-[#64D1CB]"
                       }`}
-                      style={{
-                        width: 45,
-                        height: 60,
-                      }}
                     >
-                      <Text
-                        className={`text-md font-pbold ${
-                          isSelected ? "text-white" : "text-[#64D1CB]"
-                        }`}
-                      >
-                        {item.getDate()}
-                      </Text>
-                      <Text
-                        className={`text-sm font-semibold ${
-                          isSelected ? "text-white" : "text-gray-400"
-                        }`}
-                      >
-                        {getDayOfWeek(
-                          item.toLocaleString("en-US", { weekday: "long" })
-                        )}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                      {getDayOfWeek(
+                        item.toLocaleString("en-US", { weekday: "long" })
+                      )}
+                    </Text>
+                    <Text
+                      className={`text-base font-bold mt-1 ${
+                        isDisabled
+                          ? "text-gray-400"
+                          : isSelected
+                          ? "text-white"
+                          : isToday
+                          ? "text-green-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {item.getDate()}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
+            {/* Second week */}
+            <View className="flex-row justify-between mt-4 px-2">
+              {twoWeekDays.slice(7, 14).map((item, index) => {
+                const isSelected =
+                  item.toDateString() === selectedDate?.toDateString();
+                const hasSlots = hasSlotsForDate(item);
+                const isDisabled =
+                  item.getTime() < new Date().setHours(0, 0, 0, 0);
+                const isToday =
+                  item.toDateString() === new Date().toDateString();
+
+                return (
+                  <TouchableOpacity
+                    key={index + 7}
+                    onPress={() => !isDisabled && handleSelectDate(item)}
+                    disabled={isDisabled}
+                    className={`flex items-center justify-center p-2 rounded-xl ${
+                      isDisabled
+                        ? "bg-gray-50 border border-gray-200"
+                        : isSelected
+                        ? "bg-[#64D1CB] border border-[#64D1CB]"
+                        : hasSlots
+                        ? "bg-white border border-[#64D1CB]"
+                        : "bg-white border border-gray-200"
+                    }`}
+                    style={{
+                      width: 45,
+                      height: 65,
+                    }}
+                  >
+                    <Text
+                      className={`text-sm font-medium ${
+                        isDisabled
+                          ? "text-gray-400"
+                          : isSelected
+                          ? "text-white"
+                          : "text-[#64D1CB]"
+                      }`}
+                    >
+                      {getDayOfWeek(
+                        item.toLocaleString("en-US", { weekday: "long" })
+                      )}
+                    </Text>
+                    <Text
+                      className={`text-base font-bold mt-1 ${
+                        isDisabled
+                          ? "text-gray-400"
+                          : isSelected
+                          ? "text-white"
+                          : isToday
+                          ? "text-green-600"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      {item.getDate()}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Time Slots Section */}
             {selectedDate && (
               <View className="mt-6">
                 <Text className="text-gray-800 text-lg font-bold mb-4 px-4">
@@ -341,13 +376,17 @@ const DetailNurseScreen = () => {
               </View>
             )}
 
+            {/* Booking Button */}
             <TouchableWithoutFeedback>
               <View
                 className={`bg-[#A8E0E9] p-3 rounded-md mt-6 ${
                   !selectedTimeSlot && "opacity-50"
                 }`}
               >
-                <Text className="text-white font-psemibold text-center" onPress={()=>router.push("/(create)/create-appoinment")}>
+                <Text
+                  className="text-white font-psemibold text-center"
+                  onPress={() => router.push("/(create)/create-appoinment")}
+                >
                   Đặt lịch
                 </Text>
               </View>

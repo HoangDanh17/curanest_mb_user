@@ -40,7 +40,6 @@ const ProfileLayout = () => {
         animationDuration: 200,
       }}
     >
-      <Stack.Screen name="feedback" options={screenConfigs.feedback} />
       <Stack.Screen
         name="appointment-history"
         options={screenConfigs["appointment-history"]}

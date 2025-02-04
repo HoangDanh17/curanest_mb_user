@@ -63,6 +63,10 @@ export default function RootLayout() {
         name="(profile)"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="create-patient/create-patient"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }
