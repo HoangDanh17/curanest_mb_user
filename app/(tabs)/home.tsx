@@ -35,6 +35,7 @@ const buttonData = [
 const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
   const [patientList, setPatientList] = useState<Patient[]>();
+
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -42,6 +43,7 @@ const HomeScreen = () => {
       </View>
     );
   }
+  
   async function fetchPatientList() {
     try {
       const response = await patientApiRequest.getAllPatient();
@@ -54,7 +56,6 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       fetchPatientList();
-      console.log("1");
     }, [])
   );
 
@@ -195,10 +196,12 @@ const HomeScreen = () => {
                         Đặt lịch
                       </Text>
                     </TouchableOpacity>
-
-                    <TouchableOpacity className="bg-red-500 py-2 px-2 rounded-xl flex-1 ml-2">
+                    <TouchableOpacity
+                      className="bg-orange-400 py-2 px-2 rounded-xl flex-1 mr-2"
+                      onPress={() => router.push({ pathname: "/update-patient/[id]", params: { id: item.id } })}
+                    >
                       <Text className="text-white font-psemibold text-center">
-                        Xóa
+                        Sửa hồ sơ
                       </Text>
                     </TouchableOpacity>
                   </View>

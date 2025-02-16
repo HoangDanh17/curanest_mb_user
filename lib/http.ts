@@ -70,8 +70,9 @@ const request = async <Response>(
   if (token) {
     baseHeaders["Authorization"] = `Bearer ${token}`;
   }
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
   const baseUrl =
-    options?.baseUrl === undefined ? PUBLIC_API_ENDPOINT : options.baseUrl;
+    options?.baseUrl === undefined ? apiUrl : options.baseUrl;
 
   const apiPrefix = options?.apiPrefix ? `/${options.apiPrefix}` : "";
   const fullUrl = `${baseUrl}${apiPrefix}/api/v1/${endpoint}`.replace(

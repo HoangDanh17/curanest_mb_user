@@ -64,7 +64,11 @@ export default function RootLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen
-        name="create-patient/create-patient"
+        name="create-patient"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="update-patient/[id]"
         options={{ headerShown: false }}
       />
     </Stack>

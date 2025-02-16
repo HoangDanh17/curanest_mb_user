@@ -101,6 +101,14 @@ const LoginScreen: React.FC = () => {
     try {
       setLoading(true);
       const response = await authApiRequest.login(form);
+      const userRole = response.payload.data["account-info"].role;
+      if (userRole !== "relatives") {
+        Alert.alert(
+          "Không được phép truy cập",
+          "Ứng dụng này chỉ dành cho người dùng."
+        );
+        return;
+      }
       await AsyncStorage.setItem('userInfo', JSON.stringify(response.payload.data['account-info']));
       await AsyncStorage.setItem('accessToken', response.payload.data.token['access_token']);
       router.push("/(tabs)/home");

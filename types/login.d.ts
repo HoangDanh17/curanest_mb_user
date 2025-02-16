@@ -28,3 +28,37 @@ export interface RegisterBodyType {
 export interface RegisterResType {
   message: string;
 }
+
+export interface UserDataType {
+  id?: string;
+  role: string;
+  "full-name": string;
+  email: string;
+  "phone-number": string;
+  avatar: string;
+  "created-at": string;
+  gender: boolean;
+  dob: string;
+  address: string;
+  ward: string;
+  district: string;
+  city: string;
+}
+
+export interface UpdateUserDataType {
+  address: string;
+  avatar: string;
+  city: string;
+  district: string;
+  dob: string;
+  email: string;
+  "full-name": string;
+  gender: boolean;
+  "phone-number": string;
+  ward: string;
+}
+
+export type UserDataRes = {
+  status: number;
+  data: UserDataType;
+};

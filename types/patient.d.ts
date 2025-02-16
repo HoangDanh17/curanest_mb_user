@@ -17,10 +17,10 @@ export interface CreatePatient {
   district: string;
   dob: string;
   "full-name": string;
+  gender: boolean;
   "note-for-nurse": string;
   "phone-number": string;
   ward: string;
-  gender: boolean;
 }
 
 export type PatientRes = {

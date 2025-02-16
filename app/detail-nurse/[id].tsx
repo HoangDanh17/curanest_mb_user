@@ -8,7 +8,6 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import { useState, useEffect } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
 import { AvailabilityData, DayOfWeek, NurseData } from "@/types/nurse";
