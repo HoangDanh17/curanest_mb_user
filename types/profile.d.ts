@@ -7,7 +7,7 @@ export interface ProfileButtonProps {
 }
 
 export interface ProfileHeaderProps {
-  name: string;
-  phone: string;
-  avatar: string;
+  name: string | undefined;
+  phone: string | undefined;
+  avatar: string | undefined;
 }

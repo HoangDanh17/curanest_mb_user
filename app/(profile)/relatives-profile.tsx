@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import React, { useState, useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import ApiService, { District } from "@/app/api/ApiService";
 import { UserDataType } from "@/types/login";
@@ -82,7 +81,6 @@ const RelativesProfileScreen = () => {
     "full-name": "",
     email: "",
     "phone-number": "",
-    avatar: "",
     "created-at": "",
     gender: true,
     dob: "",
@@ -98,7 +96,6 @@ const RelativesProfileScreen = () => {
     "full-name": "",
     email: "",
     "phone-number": "",
-    avatar: "",
     "created-at": "",
     gender: true,
     dob: "",
@@ -148,7 +145,6 @@ const RelativesProfileScreen = () => {
           "full-name": userData["full-name"] || "",
           email: userData.email || "",
           "phone-number": userData["phone-number"] || "",
-          avatar: userData.avatar || "",
           "created-at": userData["created-at"] || "",
           gender: userData.gender ?? true,
           dob: userData.dob || "",
@@ -202,29 +198,6 @@ const RelativesProfileScreen = () => {
       Alert.alert("Error", "Failed to fetch wards");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission needed",
-        "Sorry, we need camera roll permissions to change your avatar."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setEditData((prev) => ({ ...prev, avatar: result.assets[0].uri }));
     }
   };
 
@@ -511,69 +484,18 @@ const RelativesProfileScreen = () => {
   );
 
   return (
-    <ScrollView
+    <LinearGradient
+      colors={["#E0F2FE", "#EEF2FF", "#FAF5FF"]}
       className="flex-1"
-      contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
-      showsVerticalScrollIndicator={false}
-      showsHorizontalScrollIndicator={false}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
     >
-      <LinearGradient
-        colors={["#E0F2FE", "#EEF2FF", "#FAF5FF"]}
+      <ScrollView
         className="flex-1"
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 30 }}
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
-        <View className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm">
-          <LinearGradient
-            colors={["rgba(240,245,255,0.9)", "rgba(255,255,255,0.8)"]}
-            className="items-center p-8 gap-4"
-          >
-            <TouchableOpacity
-              onPress={isEditing ? pickImage : undefined}
-              className="rounded-full p-1.5 bg-white/80 shadow-lg"
-            >
-              {editData?.avatar && editData.avatar !== "" ? (
-                <Image
-                  source={{ uri: editData.avatar }}
-                  className="w-[150px] h-[150px] rounded-xl"
-                />
-              ) : (
-                <View className="w-[150px] h-[150px] rounded-xl bg-gray-200 items-center justify-center">
-                  <Text>No Avatar</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-            <View className="items-center gap-2">
-              <Text className="text-2xl font-pbold text-gray-800">
-                {nurseData?.["full-name"]}
-              </Text>
-              {!isEditing ? (
-                <TouchableOpacity
-                  onPress={() => setIsEditing(true)}
-                  className="bg-blue-500 px-6 py-2 rounded-lg mt-2"
-                >
-                  <Text className="text-white font-pmedium">Chỉnh sửa</Text>
-                </TouchableOpacity>
-              ) : (
-                <View className="flex-row gap-3 mt-2">
-                  <TouchableOpacity
-                    onPress={handleCancel}
-                    className="bg-gray-100 px-6 py-2 rounded-lg"
-                  >
-                    <Text className="text-gray-700 font-pmedium">Hủy</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleSave}
-                    className="bg-blue-500 px-6 py-2 rounded-lg"
-                  >
-                    <Text className="text-white font-pmedium">Lưu</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          </LinearGradient>
-        </View>
-
         {renderPersonalInfo()}
 
         <SectionCard title="Địa chỉ">
@@ -644,8 +566,40 @@ const RelativesProfileScreen = () => {
             </View>
           </View>
         </SectionCard>
-      </LinearGradient>
-    </ScrollView>
+        <View className="bg-white/80 backdrop-blur-md rounded-2xl shadow-sm">
+          <LinearGradient
+            colors={["rgba(240,245,255,0.9)", "rgba(255,255,255,0.8)"]}
+            className="items-end p-8 gap-4"
+          >
+            <View className="items-end gap-2">
+              {!isEditing ? (
+                <TouchableOpacity
+                  onPress={() => setIsEditing(true)}
+                  className="bg-blue-500 px-6 py-2 rounded-lg mt-2"
+                >
+                  <Text className="text-white font-pmedium">Chỉnh sửa</Text>
+                </TouchableOpacity>
+              ) : (
+                <View className="flex-row gap-3 mt-2">
+                  <TouchableOpacity
+                    onPress={handleCancel}
+                    className="bg-gray-100 px-6 py-2 rounded-lg"
+                  >
+                    <Text className="text-gray-700 font-pmedium">Hủy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSave}
+                    className="bg-blue-500 px-6 py-2 rounded-lg"
+                  >
+                    <Text className="text-white font-pmedium">Lưu</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+        </View>
+      </ScrollView>
+    </LinearGradient>
   );
 };
 

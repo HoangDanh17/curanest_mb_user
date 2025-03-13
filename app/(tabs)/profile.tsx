@@ -12,19 +12,43 @@ import ProfileButton from "@/components/ProfileButton";
 import { ProfileHeaderProps } from "@/types/profile";
 import Color from "@/assets/images/gradient.png";
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type UserData = {
+  id: string;
+  "full-name": string;
+  email: string;
+  "phone-number": string;
+  role: string;
+};
+
+const getInitial = (name?: string) => {
+  if (!name) return "";
+  const parts = name.split(" ");
+  return parts[parts.length - 1].charAt(0).toUpperCase();
+};
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   name,
   phone,
   avatar,
 }) => {
+  const initial = getInitial(name);
+
   return (
     <View>
       <View className="items-center">
-        <Image
-          source={{ uri: avatar }}
-          className="w-[100px] h-[100px] rounded-full border-[6px] border-white top-[-50]"
-        />
+        {avatar ? (
+          <Image
+            source={{ uri: avatar }}
+            className="w-[100px] h-[100px] rounded-full border-[6px] border-white top-[-50]"
+          />
+        ) : (
+          <View className="w-[100px] h-[100px] rounded-full border-[6px] border-white top-[-50] bg-cyan-500 items-center justify-center">
+            <Text className="text-4xl text-white font-bold">{initial}</Text>
+          </View>
+        )}
       </View>
       <View className="top-[-50] items-center">
         <Text className="text-lg font-pbold mb-2 text-[#67e4f8]">{name}</Text>
@@ -57,7 +81,23 @@ const WalletBalance = () => {
     </View>
   );
 };
-const ProfileScreen: React.FC = () => {
+
+const ProfileScreen = () => {
+  const [data, setData] = useState<UserData | undefined>();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const savedToken = await AsyncStorage.getItem("userInfo");
+      if (savedToken) {
+        const parsedData: UserData = JSON.parse(savedToken);
+        setData(parsedData);
+      } else {
+        router.push("/(auth)/welcome");
+      }
+    };
+    fetchData();
+  }, []);
+
   return (
     <SafeAreaView className="flex-1">
       <ImageBackground source={Color} style={{ flex: 1 }} blurRadius={100}>
@@ -69,10 +109,11 @@ const ProfileScreen: React.FC = () => {
               style={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             >
               <ProfileHeader
-                name="Nguyễn Văn C"
-                phone="0945675162"
-                avatar="https://imgcdn.stablediffusionweb.com/2024/5/17/01903701-1c0f-4801-9501-fe24f6ef6889.jpg"
+                name={data?.["full-name"]}
+                phone={data?.["phone-number"]}
+                avatar={undefined} 
               />
+
               <View className="top-[-30]">
                 <WalletBalance />
               </View>

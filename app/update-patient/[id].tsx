@@ -167,7 +167,7 @@ const UpdatePatientScreen = () => {
     try {
       const patientData: CreatePatient = {
         address: formData.address,
-        city: "Thành phố Hồ Chí Minh",
+        city: "Hồ Chí Minh",
         "desc-pathology": formData.medicalCondition,
         district: formData.district,
         dob: formData.dob,
@@ -254,9 +254,8 @@ const UpdatePatientScreen = () => {
     >
       <ScrollView className="flex-1">
         <View className="p-4">
-          <HeaderBack />
-
           <View className="bg-white p-4 rounded-xl">
+            <HeaderBack />
             <CustomInput
               label="Họ và tên"
               value={formData.fullName}

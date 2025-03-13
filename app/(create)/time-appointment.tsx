@@ -7,17 +7,41 @@ import {
   Pressable,
 } from "react-native";
 import Animated, { useSharedValue } from "react-native-reanimated";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import SystemOptionScreen from "@/components/createAppointment/SystemOptionScreen";
 import HeaderBack from "@/components/HeaderBack";
 
-const schedule: { [key: string]: string[] } = {
-  "2025-01-01": ["08:00", "09:00", "10:00", "11:00"],
-  "2025-01-02": ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00"],
-  "2025-01-03": ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00"],
+// Tạo hàm để sinh danh sách thời gian từ 08:00 đến 22:00 với bước nhảy 30 phút
+const generateSchedule = () => {
+  const schedule: { [key: string]: string[] } = {};
+  const startHour = 8;
+  const endHour = 22;
+  const interval = 30;
+
+  for (let i = 0; i < 14; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() + i);
+    const dateKey = date.toISOString().split("T")[0];
+
+    const times: string[] = [];
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += interval) {
+        const time = `${String(hour).padStart(2, "0")}:${String(
+          minute
+        ).padStart(2, "0")}`;
+        times.push(time);
+      }
+    }
+    schedule[dateKey] = times;
+  }
+
+  return schedule;
 };
 
+const schedule = generateSchedule();
+
 const TimeSelectScreen = () => {
+  const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string>("");
@@ -65,6 +89,8 @@ const TimeSelectScreen = () => {
   };
 
   const handleTimeSelect = async (time: string) => {
+    if (!selectedDate) return;
+
     setSelectedTime(time);
     const endTime = calculateEndTime(time, 90);
     setEndTime(endTime);
@@ -72,8 +98,21 @@ const TimeSelectScreen = () => {
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    // Chuyển trang sau khi hoàn thành
-    router.push("/(create)/confirm-appointment");
+    if (type === "true") {
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const formattedTime = `${formattedDate}T${time}:00.000Z`;
+      router.push({
+        pathname: "/(create)/date-available",
+        params: {
+          id: id,
+          number: 5,
+          time: formattedTime, 
+        },
+      });
+    } else {
+      router.push("/(create)/select-type-and-time");
+    }
+
     setLoadingTime(null);
   };
 
@@ -95,27 +134,34 @@ const TimeSelectScreen = () => {
 
   const renderDateItem = ({ item }: { item: Date }) => {
     const isSelected = selectedDate?.toDateString() === item.toDateString();
+    const dateKey = item.toISOString().split("T")[0];
+    const hasAvailableTime = schedule[dateKey] && schedule[dateKey].length > 0;
+
+    let containerStyle =
+      "w-16 h-16 rounded-full items-center justify-center mx-2 font-pbold ";
+    if (isSelected) {
+      containerStyle += "bg-[#64C1DB]";
+    } else if (hasAvailableTime) {
+      containerStyle += "border border-[#64C1DB]";
+    } else {
+      containerStyle += "bg-white border-2 border-gray-200/90";
+    }
+
     return (
       <View className="flex flex-col items-center">
         <Pressable
-          className={`w-16 h-16 rounded-full items-center justify-center mx-2 font-pbold ${
-            isSelected ? "bg-[#64C1DB]" : "bg-white border-2 border-gray-200/90"
-          }`}
+          className={containerStyle}
           onPress={() => handleDateSelect(item)}
         >
           <Text
-            className={`text-lg font-pbold  ${
+            className={`text-lg font-pbold ${
               isSelected ? "text-white" : "text-gray-900"
             }`}
           >
             {item.getDate()}
           </Text>
         </Pressable>
-        <Text
-          className={`text-sm font-psemibold mt-2 ${
-            isSelected ? "text-gray-700" : "text-gray-700"
-          }`}
-        >
+        <Text className="text-sm font-psemibold mt-2 text-gray-700">
           {item.toLocaleDateString("vi-VN", { weekday: "short" })}
         </Text>
       </View>
@@ -124,7 +170,7 @@ const TimeSelectScreen = () => {
 
   const renderTimeItem = ({ item }: { item: string }) => {
     const isSelected = selectedTime === item;
-    const isLoading = loadingTime === item;
+    const isLoadingTime = loadingTime === item;
 
     return (
       <Pressable
@@ -134,16 +180,11 @@ const TimeSelectScreen = () => {
             : "bg-white border-2 border-gray-200/90 shadow-md"
         }`}
         onPress={() => handleTimeSelect(item)}
-        disabled={isLoading}
+        disabled={isLoadingTime}
       >
         <View className="flex-row items-center w-full">
-          {isLoading ? (
-            <View className="flex-1 justify-center items-center">
-              <ActivityIndicator
-                size="small"
-                color={isSelected ? "#FFFFFF" : "#64C1DB"}
-              />
-            </View>
+          {isLoadingTime ? (
+            <ActivityIndicator size="small" color="#fff" />
           ) : (
             <>
               <View
@@ -164,6 +205,9 @@ const TimeSelectScreen = () => {
       </Pressable>
     );
   };
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
     if (viewableItems.length > 0) {
@@ -174,10 +218,6 @@ const TimeSelectScreen = () => {
       });
       setCurrentMonthYear(monthYear);
     }
-  }).current;
-
-  const viewabilityConfig = useRef({
-    itemVisiblePercentThreshold: 50,
   }).current;
 
   return (

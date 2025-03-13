@@ -10,14 +10,19 @@ const CreateLayout = () => {
         animationDuration: 200,
       }}
     >
-      <Stack.Screen name="create-appoinment" options={{ headerShown: false }} />
+      <Stack.Screen name="choose-pack" options={{ headerShown: false }} />
       <Stack.Screen
         name="select-type-and-time"
         options={{ headerShown: false }}
       />
       <Stack.Screen name="time-appointment" options={{ headerShown: false }} />
-      <Stack.Screen name="confirm-appointment" options={{ headerShown: false }} />
-
+      <Stack.Screen
+        name="confirm-appointment"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen name="detail-pack" options={{ headerShown: false }} />
+      <Stack.Screen name="choose-service" options={{ headerShown: false }} />
+      <Stack.Screen name="date-available" options={{ headerShown: false }} />
     </Stack>
   );
 };

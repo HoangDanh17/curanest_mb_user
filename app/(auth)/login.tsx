@@ -262,7 +262,7 @@ const LoginScreen: React.FC = () => {
               : errors["phone-number"]
               ? "border-red-500 bg-white"
               : "border-teal-500 bg-white"
-          } rounded-2xl p-4 mb-1`}
+          } rounded-2xl p-4 mb-1 font-psemibold`}
           placeholder="Nhập số điện thoại"
           value={form["phone-number"]}
           onChangeText={(value) => handleInputChange("phone-number", value)}
@@ -292,7 +292,7 @@ const LoginScreen: React.FC = () => {
                 : errors.password
                 ? "border-red-500 bg-white"
                 : "border-teal-500 bg-white"
-            } rounded-2xl p-4 pr-12 mb-1`}
+            } rounded-2xl p-4 pr-12 mb-1 font-psemibold`}
             placeholder="*********"
             value={form.password}
             onChangeText={(value) => handleInputChange("password", value)}
@@ -339,7 +339,7 @@ const LoginScreen: React.FC = () => {
         </TouchableOpacity>
       </Animated.View>
       <View className="mt-14 flex flex-row">
-        <Text className="text-lg">Chưa có tài khoản?</Text>
+        <Text className="text-lg font-pmedium">Chưa có tài khoản?</Text>
         <Link
           href={"/(auth)/register"}
           className="ml-2 text-teal-600 underline decoration-2 text-lg"

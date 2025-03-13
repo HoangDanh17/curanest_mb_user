@@ -35,7 +35,6 @@ export interface UserDataType {
   "full-name": string;
   email: string;
   "phone-number": string;
-  avatar: string;
   "created-at": string;
   gender: boolean;
   dob: string;
@@ -47,7 +46,6 @@ export interface UserDataType {
 
 export interface UpdateUserDataType {
   address: string;
-  avatar: string;
   city: string;
   district: string;
   dob: string;

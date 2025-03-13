@@ -37,7 +37,6 @@ interface PatientForm {
   gender: boolean;
   medicalCondition: string;
   nursingNotes: string;
-  avatar: string | null;
   email: string;
 }
 
@@ -118,7 +117,6 @@ const CreatePatientScreen = () => {
     gender: true,
     medicalCondition: "",
     nursingNotes: "",
-    avatar: null,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -153,19 +151,6 @@ const CreatePatientScreen = () => {
 
       setFormData({ ...formData, dob: formattedDate });
       setErrors({ ...errors, dob: undefined });
-    }
-  };
-
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFormData({ ...formData, avatar: result.assets[0].uri });
     }
   };
 
@@ -205,16 +190,16 @@ const CreatePatientScreen = () => {
 
     try {
       const patientData: CreatePatient = {
-        gender: formData.gender,
-        "full-name": formData.fullName,
-        dob: formData.dob,
-        "phone-number": formData.phone,
         address: formData.address,
-        ward: formData.ward,
-        district: formData.district,
-        city: "Thành phố Hồ Chí Minh",
+        city: "Hồ Chí Minh",
         "desc-pathology": formData.medicalCondition,
+        district: formData.district,
+        dob: formData.dob,
+        "full-name": formData.fullName,
+        gender: formData.gender,
         "note-for-nurse": formData.nursingNotes,
+        "phone-number": formData.phone,
+        ward: formData.ward,
       };
 
       const response = await patientApiRequest.createPatient(patientData);
@@ -244,22 +229,8 @@ const CreatePatientScreen = () => {
     >
       <ScrollView className="flex-1">
         <View className="p-4">
-          <HeaderBack />
-          <TouchableOpacity onPress={pickImage} className="items-center mb-6">
-            {formData.avatar ? (
-              <Image
-                source={{ uri: formData.avatar }}
-                className="w-32 h-32 rounded-xl border-2 border-gray-200"
-              />
-            ) : (
-              <View className="w-32 h-32 rounded-xl bg-white border-2 border-gray-200 items-center justify-center">
-                <Text className="text-gray-500">Chọn ảnh</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Form Fields */}
           <View className="bg-white p-4 rounded-xl">
+          <HeaderBack />
             <CustomInput
               label="Họ và tên"
               value={formData.fullName}

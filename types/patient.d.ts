@@ -27,6 +27,7 @@ export type PatientRes = {
   status: number;
   data: Patient[];
 };
+
 export type CreatePatientRes = {
   status: number;
   message: string;

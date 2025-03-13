@@ -4,12 +4,11 @@ import { View, FlatList, Pressable, Image, Text } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 const NurseCard = () => {
-  
   const NurseCardItem = ({ name, role, rating }: any) => {
     return (
       <Pressable
         className="w-[48%] m-1 border border-gray-200 rounded-lg bg-white shadow-sm"
-        onPress={() => router.push("/(create)/time-appointment")}
+        onPress={() => router.push("/(create)/confirm-appointment")}
       >
         <View className="p-4 flex flex-col items-center gap-4">
           <View className="relative">

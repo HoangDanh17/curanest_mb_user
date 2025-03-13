@@ -4,6 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
+import { Provider } from "@/app/provider";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,41 +37,45 @@ export default function RootLayout() {
     return null;
   }
   return (
-    <Stack
-      screenOptions={{
-        animation: "fade",
-        presentation: "modal",
-        animationDuration: 200,
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="detail-nurse/[id]"
-        options={{ title: "", headerShown: false }}
-      />
-      <Stack.Screen name="(news)" options={{ title: "", headerShown: false }} />
-      <Stack.Screen
-        name="(create)"
-        options={{ title: "", headerShown: false }}
-      />
-      <Stack.Screen
-        name="detail-appointment/[id]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="(profile)"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="create-patient"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="update-patient/[id]"
-        options={{ headerShown: false }}
-      />
-    </Stack>
+    <Provider>
+      <Stack
+        screenOptions={{
+          animation: "fade",
+          presentation: "modal",
+          animationDuration: 200,
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="detail-nurse/[id]"
+          options={{ title: "", headerShown: false }}
+        />
+        <Stack.Screen
+          name="(news)"
+          options={{ title: "", headerShown: false }}
+        />
+        <Stack.Screen
+          name="(create)"
+          options={{ title: "", headerShown: false }}
+        />
+        <Stack.Screen
+          name="detail-appointment/[id]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="list-nurse/[id]" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="detail-schedule/[id]"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen name="(profile)" options={{ headerShown: false }} />
+        <Stack.Screen name="create-patient" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="update-patient/[id]"
+          options={{ headerShown: false }}
+        />
+      </Stack>
+    </Provider>
   );
 }

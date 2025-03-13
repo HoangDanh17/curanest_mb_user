@@ -43,7 +43,7 @@ const HomeScreen = () => {
       </View>
     );
   }
-  
+
   async function fetchPatientList() {
     try {
       const response = await patientApiRequest.getAllPatient();
@@ -190,7 +190,7 @@ const HomeScreen = () => {
                   <View className="flex flex-row justify-between">
                     <TouchableOpacity
                       className="bg-blue-500 py-2 px-2 rounded-xl flex-1 mr-2"
-                      onPress={() => router.push("/create-appoinment")}
+                      onPress={() => router.push("/choose-service")}
                     >
                       <Text className="text-white font-psemibold text-center">
                         Đặt lịch
@@ -198,7 +198,12 @@ const HomeScreen = () => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       className="bg-orange-400 py-2 px-2 rounded-xl flex-1 mr-2"
-                      onPress={() => router.push({ pathname: "/update-patient/[id]", params: { id: item.id } })}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/update-patient/[id]",
+                          params: { id: item.id },
+                        })
+                      }
                     >
                       <Text className="text-white font-psemibold text-center">
                         Sửa hồ sơ
