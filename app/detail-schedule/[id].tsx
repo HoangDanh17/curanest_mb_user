@@ -54,7 +54,7 @@ const DetailScheduleListScreen = () => {
         </Text>
         <TouchableOpacity
           className="bg-[#64CBDB] p-2 px-6 rounded-2xl"
-          onPress={() => router.push("/choose-pack")}
+          onPress={() => router.push("/(create)/choose-profile")}
         >
           <Text className="text-white font-pbold">Đặt lịch</Text>
         </TouchableOpacity>

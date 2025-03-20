@@ -10,47 +10,64 @@ import Animated, { useSharedValue } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import SystemOptionScreen from "@/components/createAppointment/SystemOptionScreen";
 import HeaderBack from "@/components/HeaderBack";
+import { useSearch } from "@/app/provider";
 
-// Tạo hàm để sinh danh sách thời gian từ 08:00 đến 22:00 với bước nhảy 30 phút
-const generateSchedule = () => {
+const generateSchedule = (isSearch: boolean) => {
   const schedule: { [key: string]: string[] } = {};
   const startHour = 8;
   const endHour = 22;
   const interval = 30;
 
-  for (let i = 0; i < 14; i++) {
+  const daysToGenerate = isSearch ? 3 : 14; // ✅ Giới hạn 3 ngày nếu là isSearch
+
+  for (let i = 0; i < daysToGenerate; i++) {
     const date = new Date();
     date.setDate(date.getDate() + i);
     const dateKey = date.toISOString().split("T")[0];
 
     const times: string[] = [];
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += interval) {
+
+    if (isSearch) {
+      for (let j = 0; j < 4; j++) {
+        const hour = startHour + j * 2; // Giãn cách thời gian
+        const minute = j % 2 === 0 ? 0 : 30; // 08:00, 10:30, 13:00, 15:30
         const time = `${String(hour).padStart(2, "0")}:${String(
           minute
         ).padStart(2, "0")}`;
         times.push(time);
       }
+    } else {
+      for (let hour = startHour; hour < endHour; hour++) {
+        for (let minute = 0; minute < 60; minute += interval) {
+          const time = `${String(hour).padStart(2, "0")}:${String(
+            minute
+          ).padStart(2, "0")}`;
+          times.push(time);
+        }
+      }
     }
+
     schedule[dateKey] = times;
   }
 
   return schedule;
 };
 
-const schedule = generateSchedule();
-
 const TimeSelectScreen = () => {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
+  const { isSearch } = useSearch();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [endTime, setEndTime] = useState<string>("");
+
   const [currentMonthYear, setCurrentMonthYear] = useState<string>("");
   const [loadingTime, setLoadingTime] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const flatListRef = useRef<FlatList>(null);
   const translateY = useSharedValue(-50);
+  const schedule = generateSchedule(isSearch);
+  const duration = 240; // Khoảng thời gian mặc định là 240 phút (4 giờ)
 
   useEffect(() => {
     const today = new Date();
@@ -82,6 +99,12 @@ const TimeSelectScreen = () => {
     const startDate = new Date();
     startDate.setHours(hours, minutes, 0, 0);
     const endDate = new Date(startDate.getTime() + duration * 60000);
+
+    // Giới hạn thời gian kết thúc không vượt quá 22:00
+    if (endDate.getHours() >= 22 && endDate.getMinutes() > 0) {
+      endDate.setHours(22, 0, 0, 0); // Đặt lại thời gian kết thúc là 22:00
+    }
+
     return endDate.toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
@@ -90,14 +113,14 @@ const TimeSelectScreen = () => {
 
   const handleTimeSelect = async (time: string) => {
     if (!selectedDate) return;
-
+  
     setSelectedTime(time);
-    const endTime = calculateEndTime(time, 90);
+    const endTime = calculateEndTime(time, 90); // duration 90 minutes
     setEndTime(endTime);
     setLoadingTime(time);
-
+  
     await new Promise((resolve) => setTimeout(resolve, 2000));
-
+  
     if (type === "true") {
       const formattedDate = selectedDate.toISOString().split("T")[0];
       const formattedTime = `${formattedDate}T${time}:00.000Z`;
@@ -106,28 +129,35 @@ const TimeSelectScreen = () => {
         params: {
           id: id,
           number: 5,
-          time: formattedTime, 
+          time: formattedTime,
         },
       });
+    } else if (isSearch === true) {
+      router.push("/(create)/confirm-appointment");
     } else {
       router.push("/(create)/select-type-and-time");
     }
-
+  
     setLoadingTime(null);
   };
-
+  
   const handleDateSelect = async (date: Date) => {
     setIsLoading(true);
     setSelectedDate(date);
     translateY.value = 0;
-
-    const index = dates.findIndex(
-      (d) => d.toDateString() === date.toDateString()
-    );
-
+  
+    // Tìm vị trí của ngày được chọn trong mảng dates
+    const index = dates.findIndex((d) => d.toDateString() === date.toDateString());
+  
     if (flatListRef.current && index !== -1) {
-      flatListRef.current.scrollToIndex({ index, animated: true });
+      // Sử dụng viewPosition: 0 để scroll đến ngày được chọn và đặt nó nằm bên trái
+      flatListRef.current.scrollToIndex({ 
+        index, 
+        animated: true,
+        viewPosition: 0 // 0 là bên trái, 0.5 là giữa, 1 là bên phải
+      });
     }
+  
     await new Promise((resolve) => setTimeout(resolve, 500));
     setIsLoading(false);
   };
@@ -184,7 +214,9 @@ const TimeSelectScreen = () => {
       >
         <View className="flex-row items-center w-full">
           {isLoadingTime ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="small" color="#fff" />
+            </View>
           ) : (
             <>
               <View
@@ -205,6 +237,7 @@ const TimeSelectScreen = () => {
       </Pressable>
     );
   };
+
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
@@ -239,6 +272,7 @@ const TimeSelectScreen = () => {
         renderTimeItem={renderTimeItem}
         translateY={translateY}
         isLoading={isLoading}
+        duration={duration}
       />
     </View>
   );

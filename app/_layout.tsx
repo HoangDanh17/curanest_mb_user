@@ -4,7 +4,9 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
-import { Provider } from "@/app/provider";
+import SearchProvider from "@/app/provider";
+
+// Import the SearchProvider
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,11 +35,8 @@ export default function RootLayout() {
     return null;
   }
 
-  if (!fontsLoaded && !error) {
-    return null;
-  }
   return (
-    <Provider>
+    <SearchProvider>
       <Stack
         screenOptions={{
           animation: "fade",
@@ -76,6 +75,6 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
       </Stack>
-    </Provider>
+    </SearchProvider>
   );
 }

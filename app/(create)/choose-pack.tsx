@@ -159,38 +159,56 @@ const ServiceCategoryCard = ({
 
   return (
     <View key={category.name} className="mb-2">
+      {/* Toggle Button */}
       <TouchableOpacity
         onPress={onToggle}
-        className="p-6 py-4 mb-2 border-b-2 border-gray-500 bg-white rounded-2xl"
+        className="p-6 py-4 mb-2 border-b-2 border-gray-300 bg-white rounded-2xl"
       >
         <View className="flex flex-row justify-between items-center">
-          <Text className="font-pmedium text-gray-500">{category.name}</Text>
+          <Text 
+            className="font-pmedium text-gray-700 flex-1" 
+            numberOfLines={2} // Giới hạn 2 dòng, nếu dài thì sẽ cắt bớt
+            ellipsizeMode="tail"
+          >
+            {category.name}
+          </Text>
           <Ionicons
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={20}
-            color="#6B728033"
+            color="#6B7280"
           />
         </View>
       </TouchableOpacity>
+
+      {/* Nội dung mở rộng */}
       {isExpanded && (
-        <View className="rounded-lg p-4">
+        <View className="rounded-lg p-4 bg-gray-50">
           {category.services.map((service) => (
             <View key={service.id} className="py-2 border-b border-gray-300">
-              <View className="flex flex-row justify-between">
-                <View>
-                  <Text className="font-medium text-gray-600">
+              <View className="flex flex-row justify-between items-center">
+                {/* Thông tin dịch vụ */}
+                <View className="flex-1 mr-2">
+                  <Text 
+                    className="font-medium text-gray-600 flex-wrap"
+                    numberOfLines={2} // Giới hạn 2 dòng cho nội dung dài
+                    ellipsizeMode="tail"
+                  >
                     {service.name}
                   </Text>
                   <Text className="text-sm text-gray-500">
                     Thời gian: {service.duration} phút
                   </Text>
                 </View>
-                <Text className="font-medium text-gray-600">
+
+                {/* Giá dịch vụ */}
+                <Text className="font-medium text-gray-600 whitespace-nowrap">
                   {service.price.toLocaleString()} VND
                 </Text>
               </View>
             </View>
           ))}
+
+          {/* Tổng kết */}
           <View className="flex flex-col items-end mt-4 gap-4">
             <Text className="text-sm text-gray-500">
               Tổng thời gian: {totalDuration} phút
@@ -210,6 +228,7 @@ const ServiceCategoryCard = ({
     </View>
   );
 };
+
 
 const ChoosingPackScreen = () => {
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
