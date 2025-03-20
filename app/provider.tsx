@@ -1,29 +1,29 @@
 import React, { createContext, useState, useContext, ReactNode } from "react";
 
-type UserContextType = {
-  name: string;
-  email: string;
-  setName: (name: string) => void;
-  setEmail: (email: string) => void;
+type SearchContextType = {
+  isSearch: boolean;
+  setIsSearch: (value: boolean) => void;
 };
 
-const UserContext = createContext<UserContextType | undefined>(undefined);
+const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
-export const Provider = ({ children }: { children: ReactNode }) => {
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
+export const SearchProvider = ({ children }: { children: ReactNode }) => {
+  const [isSearch, setIsSearch] = useState<boolean>(false);
 
   return (
-    <UserContext.Provider value={{ name, email, setName, setEmail }}>
+    <SearchContext.Provider value={{ isSearch, setIsSearch }}>
       {children}
-    </UserContext.Provider>
+    </SearchContext.Provider>
   );
 };
 
-export const useUser = (): UserContextType => {
-  const context = useContext(UserContext);
+export const useSearch = (): SearchContextType => {
+  const context = useContext(SearchContext);
   if (!context) {
-    throw new Error("useUser must be used within a UserProvider");
+    throw new Error("useSearch must be used within a SearchProvider");
   }
   return context;
 };
+
+// ✅ Add a default export
+export default SearchProvider;

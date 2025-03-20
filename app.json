@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "curanest_mb_user",
+    "name": "Curanest",
     "slug": "curanest_mb_user",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo-app.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,9 +13,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/welcome.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.danhths.curanest_mb_user"
     },
     "web": {
       "bundler": "metro",
@@ -36,6 +37,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "fe01d758-fd51-4d83-bd3d-10fc011f06d0"
+      }
     }
   }
 }

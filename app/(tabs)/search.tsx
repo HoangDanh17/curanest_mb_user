@@ -96,7 +96,13 @@ const CategoryScreen = () => {
                     <TouchableOpacity
                       key={service.id}
                       className="flex-row items-center py-2 px-3 rounded-full border-2 border-[#64CBCC] mr-2 mb-2 bg-gray-50"
-                      onPress={() => router.push(`/list-nurse/${service.id}`)}
+                      onPress={() =>
+                        router.push(
+                          `/list-nurse/${
+                            service.id
+                          }?serviceName=${encodeURIComponent(service.name)}`
+                        )
+                      }
                     >
                       <Text className="text-sm text-gray-800 font-pmedium">
                         {service.name}

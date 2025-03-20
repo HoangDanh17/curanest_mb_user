@@ -40,7 +40,7 @@ const InputLogin: React.FC<InputLoginProps> = ({
             : error && touched
             ? "border-red-500 bg-white"
             : "border-teal-500 bg-white"
-        } rounded-2xl p-4 ${isPassword ? "pr-12" : ""} mb-1`}
+        } rounded-2xl p-4 ${isPassword ? "pr-12" : ""} mb-1 font-psemibold`}
         editable={!loading}
         {...inputProps}
       />

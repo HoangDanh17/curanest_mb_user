@@ -102,14 +102,7 @@ const DetailNurseScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1">
-      {/* Background gradient với chủ đề màu trắng, thêm cyan và vàng nhẹ */}
-      <LinearGradient
-        colors={["#ffffff", "#e0ffff", "#ffffe0"]}
-        className="flex-1"
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      >
+    <SafeAreaView className="flex-1 bg-white">
         <ScrollView className="bg-transparent h-full">
           <View className="pt-4 pl-4">
             <HeaderBack />
@@ -263,7 +256,7 @@ const DetailNurseScreen = () => {
               />
 
               <TouchableOpacity
-                onPress={() => router.push("/(create)/choose-pack")}
+                onPress={() => router.push("/(create)/choose-profile")}
                 className="bg-[#A8E0E9] p-3 rounded-md mt-6"
               >
                 <Text className="text-white font-psemibold text-center">
@@ -274,7 +267,6 @@ const DetailNurseScreen = () => {
           </View>
           <View className="mb-10" />
         </ScrollView>
-      </LinearGradient>
     </SafeAreaView>
   );
 };

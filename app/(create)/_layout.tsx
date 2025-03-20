@@ -22,6 +22,7 @@ const CreateLayout = () => {
       />
       <Stack.Screen name="detail-pack" options={{ headerShown: false }} />
       <Stack.Screen name="choose-service" options={{ headerShown: false }} />
+      <Stack.Screen name="choose-profile" options={{ headerShown: false }} />
       <Stack.Screen name="date-available" options={{ headerShown: false }} />
     </Stack>
   );

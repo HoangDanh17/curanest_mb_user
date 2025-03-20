@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -5,6 +6,7 @@ import {
   ImageBackground,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,7 +14,6 @@ import ProfileButton from "@/components/ProfileButton";
 import { ProfileHeaderProps } from "@/types/profile";
 import Color from "@/assets/images/gradient.png";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 type UserData = {
@@ -98,6 +99,32 @@ const ProfileScreen = () => {
     fetchData();
   }, []);
 
+  const handleLogout = async () => {
+    Alert.alert(
+      "Xác nhận đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Đồng ý",
+          onPress: async () => {
+            try {
+              await AsyncStorage.clear();
+              router.replace("/(auth)/login");
+            } catch (error) {
+              console.error("Đăng xuất thất bại", error);
+              Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1">
       <ImageBackground source={Color} style={{ flex: 1 }} blurRadius={100}>
@@ -111,12 +138,13 @@ const ProfileScreen = () => {
               <ProfileHeader
                 name={data?.["full-name"]}
                 phone={data?.["phone-number"]}
-                avatar={undefined} 
+                avatar={undefined}
               />
 
               <View className="top-[-30]">
                 <WalletBalance />
               </View>
+
               <View className="mx-4 flex flex-col gap-4 pb-8">
                 <ProfileButton
                   icon="edit"
@@ -136,7 +164,7 @@ const ProfileScreen = () => {
                 <ProfileButton
                   icon="logout"
                   text="Đăng xuất"
-                  onPress={() => console.log("Logout")}
+                  onPress={handleLogout}
                 />
               </View>
             </View>
