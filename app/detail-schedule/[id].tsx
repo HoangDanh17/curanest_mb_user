@@ -4,15 +4,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
 
 type ScheduleItem = {
-  startHour: number; 
-  endHour: number; 
+  startHour: number;
+  endHour: number;
   title: string;
 };
 
 const DetailScheduleListScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { selectedDate } = params;
+  const { selectedDate, id } = params;
   const dateStr = Array.isArray(selectedDate) ? selectedDate[0] : selectedDate;
   const currentDate = dateStr ? new Date(dateStr) : new Date();
 
@@ -47,14 +47,19 @@ const DetailScheduleListScreen = () => {
 
   return (
     <View className="flex-1 bg-white p-4">
-      <View className="mb-4 flex-row items-center">
+      <View className="mb-4 flex-row items-center mt-4">
         <HeaderBack />
         <Text className="flex-1 text-center text-lg font-pbold">
           Lịch ngày {currentDate.toLocaleDateString()}
         </Text>
         <TouchableOpacity
           className="bg-[#64CBDB] p-2 px-6 rounded-2xl"
-          onPress={() => router.push("/(create)/choose-profile")}
+          onPress={() =>
+            router.push({
+              pathname: "/(create)/choose-profile",
+              params: { id: id },
+            })
+          }
         >
           <Text className="text-white font-pbold">Đặt lịch</Text>
         </TouchableOpacity>

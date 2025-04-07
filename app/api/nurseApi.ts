@@ -4,8 +4,8 @@ import { DetailNurseRes, ListNurseDataRes } from "@/types/nurse";
 const nurseApiRequest = {
   getListNurse: (
     id: string | string[],
-    page: number,
-    nurseName: string | null
+    page?: number,
+    nurseName?: string | null
   ) =>
     http.get<ListNurseDataRes>(
       `nurses?service-id=${id}${

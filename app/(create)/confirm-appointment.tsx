@@ -8,49 +8,103 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Modal, // Thêm Modal từ React Native
+  Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router"; // Sử dụng useRouter từ expo-router
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-const dummyData = {
-  header: "Xem lại và xác nhận",
-  patientName: "Nguyễn Văn A", // Tên bệnh nhân
-  patientRating: "4,9 ★★★★★ (548)", // Đánh giá bệnh nhân
-  patientAddress: "165 Dinh Tiên Hoang, Da Kao ...", // Địa chỉ bệnh nhân
-  patientAvatar:
-    "https://img.tripi.vn/cdn-cgi/image/width=700,height=700/https://gcs.tripi.vn/public-tripi/tripi-feed/img/474053OSH/anh-cute-nguoi-that-dep-nhat_022606213.jpg", // Avatar bệnh nhân
-  date: "Thứ Năm 2 Tháng 1",
-  time: "12:30-13:30 (thời lượng 1 giờ)",
-  services: [
-    { name: "Lash Lift & Tint", duration: 60, price: 400000 }, // Thời lượng tính bằng phút
-    { name: "Uốn mi", duration: 60, price: 300000 },
-    { name: "Nhuộm mi", duration: 30, price: 200000 },
-  ],
-  paymentLocation: "Thanh toán tại địa điểm: 900.000 đ",
-  paymentMethod: "Phương thức thanh toán",
-  serviceDetail: "3 dịch vụ • 2 giờ, 30 phút",
+// Định nghĩa interface
+interface Service {
+  name: string;
+  duration: number;
+  cost: number;
+  additionalCost: number;
+  quantity: number;
+  id: string;
+  note: string;
+}
+
+interface PackageData {
+  day: string;
+  description: string;
+  packageId: string;
+  packageName: string;
+  serviceId: string;
+  services: Service[];
+  totalDuration: number;
+  totalPrice: number;
+}
+
+interface PatientData {
+  address: string;
+  city: string;
+  "desc-pathology": string;
+  district: string;
+  dob: string;
+  "full-name": string;
+  id: string;
+  "note-for-nurse": string;
+  "phone-number": string;
+  ward: string;
+}
+
+interface Appointment {
+  day: number;
+  date: string;
+  formattedDate: string;
+  startTime: string;
+  endTime: string;
+  duration: string;
+}
+
+interface NurseData {
+  fullName: string;
+  rating: number;
+  reviews: number;
+  avatar?: string;
+}
+
+const safeParse = (data: any, name: string) => {
+  try {
+    if (typeof data === "string") {
+      return JSON.parse(data);
+    }
+    console.warn(`${name} không phải chuỗi, trả về nguyên bản:`, data);
+    return data || null;
+  } catch (error) {
+    console.error(`Lỗi parse ${name}:`, error);
+    return null;
+  }
 };
 
 const ConfirmScreen = () => {
-  const router = useRouter(); // Sử dụng useRouter để chuyển hướng
-  const [isLoading, setIsLoading] = useState(false); // State để quản lý loading
-  const [isModalVisible, setIsModalVisible] = useState(false); // State để quản lý hiển thị modal
-  const [isSuccess, setIsSuccess] = useState(false); // State để quản lý trạng thái thành công hay thất bại
+  const { packageInfo, patient, listDate, nurseData } = useLocalSearchParams();
+  console.log("🚀 ~ ConfirmScreen ~ nurseData:", nurseData);
+  const packageData: PackageData | null = safeParse(packageInfo, "packageInfo");
+  const patientData: PatientData | null = safeParse(patient, "patient");
+  const listDateData: Appointment[] | null = safeParse(listDate, "listDate");
+  const parsedNurseData: NurseData | null = safeParse(nurseData, "nurseData");
 
-  // Hàm tính tổng số tiền
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
   const calculateTotal = () => {
-    return dummyData.services.reduce(
-      (total, service) => total + service.price,
-      0
+    return (
+      packageData?.services.reduce(
+        (total: number, service: Service) =>
+          total + service.cost * service.quantity,
+        0
+      ) || 0
     );
   };
 
   const countServices = () => {
-    return dummyData.services.length;
+    return packageData?.services.length || 0;
   };
 
-  const convertDuration = (duration: any) => {
+  const convertDuration = (duration: number) => {
     const hours = Math.floor(duration / 60);
     const minutes = duration % 60;
     return `${hours > 0 ? `${hours} tiếng` : ""} ${
@@ -58,130 +112,205 @@ const ConfirmScreen = () => {
     }`.trim();
   };
 
-  // Hàm submit
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const isSuccess = Math.random() > 0.5; // 50% thành công, 50% thất bại
+      const isSuccess = Math.random() > 0.5;
       setIsSuccess(isSuccess);
-      setIsModalVisible(true); // Hiển thị modal
+      setIsModalVisible(true);
     } catch (error) {
       console.error("Submit error:", error);
-      setIsSuccess(false); // Thất bại
-      setIsModalVisible(true); // Hiển thị modal
+      setIsSuccess(false);
+      setIsModalVisible(true);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Hàm xử lý khi người dùng nhấn nút "Về trang chủ"
   const handleGoHome = () => {
-    setIsModalVisible(false); // Đóng modal
-    router.push("/(tabs)/home"); // Chuyển hướng về trang chủ
+    setIsModalVisible(false);
+    router.push("/(tabs)/home");
   };
 
-  // Tính toán các giá trị
-  const totalPrice = calculateTotal();
+  const totalPrice = packageData?.totalPrice || calculateTotal();
   const totalServices = countServices();
-  const totalDuration = dummyData.services.reduce(
-    (total, service) => total + service.duration,
-    0
-  );
+  const totalDuration = packageData?.totalDuration || 0;
   const formattedDuration = convertDuration(totalDuration);
+
+  if (!packageData || !patientData) {
+    return (
+      <View className="flex-1 bg-white mt-4">
+        <Text className="text-center text-lg">
+          Không có dữ liệu gói hoặc bệnh nhân
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-white">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
-        className="p-4"
+        className="p-4 mt-4"
       >
-        <HeaderBack />
-        <Text className="text-xl font-pbold mb-4 my-4">{dummyData.header}</Text>
+        <View className="flex-row items-center mb-2">
+          <HeaderBack />
+          <Text className="text-2xl font-pbold mb-2 my-4 ml-4">Xác nhận</Text>
+        </View>
+        <Text className="text-lg font-pbold mb-2">Khách hàng</Text>
 
-        <View className="flex-row items-center mb-6">
+        <View className="flex-row items-center mb-4 justify-center ml-4 mr-4 border rounded-2xl p-4 border-t-2 border-b-2">
           <Image
-            source={{ uri: dummyData.patientAvatar }}
+            source={{
+              uri: "https://cdn3.iconfinder.com/data/icons/avatar-93/140/female__avatar__lady__women__caretaker-512.png",
+            }}
             className="w-20 h-20 rounded-lg mr-4"
           />
-          <View>
-            <Text className="text-lg font-pbold">{dummyData.patientName}</Text>
+          <View className="flex-1">
+            <Text className="text-lg font-pbold mb-1">
+              {patientData["full-name"]}
+            </Text>
             <Text className="text-sm text-gray-500 mb-1 font-pmedium">
-              {dummyData.patientRating}
+              {patientData["phone-number"]}
             </Text>
-            <Text
-              className="text-sm text-gray-500 font-pmedium"
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {dummyData.patientAddress}
+            <Text className="text-sm text-gray-500 font-pmedium">
+              {`${patientData.address}, ${patientData.ward}, ${patientData.district}, ${patientData.city}`}
             </Text>
           </View>
         </View>
 
-        <View className="mb-6">
-          <View className="flex-row items-center mb-2">
-            <MaterialIcons
-              name="calendar-today"
-              size={16}
-              color="#6b7280"
-              style={{ marginRight: 8, alignSelf: "center" }}
-            />
-            <Text
-              className="text-base font-pmedium text-gray-400 mt-1"
-              style={{ lineHeight: 16 }}
-            >
-              {dummyData.date}
-            </Text>
-          </View>
-          <View className="flex-row items-center">
-            <MaterialIcons
-              name="access-time"
-              size={16}
-              color="#6b7280"
-              style={{ marginRight: 8, alignSelf: "center" }}
-            />
-            <Text
-              className="text-sm font-pmedium text-gray-400 mt-1"
-              style={{ lineHeight: 16 }}
-            >
-              {dummyData.time}
-            </Text>
-          </View>
-        </View>
-
-        <View className="mb-6 ">
-          <Text className="text-lg font-pbold mb-2">Điều dưỡng đã chọn</Text>
-
-          <View className="flex-row items-center  p-4">
-            <Image
-              source={{
-                uri: "https://images.careerviet.vn/content/images/dieu-duong-vien-lam-cong-viec-gi-nhung-ky-nang-can-trang-bi-careerbuilder.png",
-              }}
-              className="w-16 h-16 rounded-lg mr-4"
-            />
-            <View>
-              <Text className="text-lg font-pbold">Nguyễn Thị B</Text>
-              <Text className="text-sm text-gray-500 font-pmedium mt-2">
-                4,8 ★★★★★ (120)
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {dummyData.services.map((service, index) => (
-          <View key={index}>
-            <View className="flex-row justify-between items-center mb-4 pb-4 border-b border-gray-200">
-              <View>
-                <Text className="text-base font-pbold">{service.name}</Text>
-                <Text className="text-sm text-gray-500 font-psemibold">
-                  {convertDuration(service.duration)}
+        <View className="mb-2">
+          <Text className="text-lg font-pbold mb-2">Thông tin ngày giờ</Text>
+          {listDateData && listDateData.length > 0 ? (
+            listDateData.length > 3 ? (
+              <View className="border border-gray-300 rounded-lg bg-white p-4 shadow-sm">
+                <ScrollView
+                  style={{ maxHeight: 160 }}
+                  nestedScrollEnabled={true}
+                  showsVerticalScrollIndicator={true}
+                >
+                  {listDateData.map((appointment, index) => (
+                    <View
+                      key={index}
+                      className="mb-4 pb-2 border-b border-gray-200 last:border-b-0"
+                    >
+                      <View className="flex-row items-center mb-1">
+                        <MaterialIcons
+                          name="calendar-today"
+                          size={16}
+                          color="#6b7280"
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text className="text-base font-pmedium text-gray-700">
+                          {`Ngày ${appointment.day}: ${appointment.formattedDate}`}
+                        </Text>
+                      </View>
+                      <View className="flex-row items-center">
+                        <MaterialIcons
+                          name="access-time"
+                          size={16}
+                          color="#6b7280"
+                          style={{ marginRight: 8 }}
+                        />
+                        <Text className="text-sm font-pmedium text-gray-600">
+                          {`${appointment.startTime} - ${appointment.endTime}`}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+                <Text className="text-sm font-pmedium text-gray-400 mt-2 text-center">
+                  Cuộn để xem thêm
                 </Text>
               </View>
-              <Text className="text-base font-pbold">
-                {service.price.toLocaleString()} đ
-              </Text>
+            ) : (
+              listDateData.map((appointment, index) => (
+                <View
+                  key={index}
+                  className="mb-4 pb-2 border-b border-gray-200 last:border-b-0"
+                >
+                  <View className="flex-row items-center mb-1">
+                    <MaterialIcons
+                      name="calendar-today"
+                      size={16}
+                      color="#6b7280"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text className="text-base font-pmedium text-gray-700">
+                      {`Ngày ${appointment.day}: ${appointment.formattedDate}`}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <MaterialIcons
+                      name="access-time"
+                      size={16}
+                      color="#6b7280"
+                      style={{ marginRight: 8 }}
+                    />
+                    <Text className="text-sm font-pmedium text-gray-600">
+                      {`${appointment.startTime} - ${appointment.endTime}`}
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )
+          ) : (
+            <Text className="text-base font-pmedium text-gray-400">
+              Chưa có thông tin ngày giờ
+            </Text>
+          )}
+        </View>
+
+        {parsedNurseData && (
+          <View className="mb-6">
+            <Text className="text-lg font-pbold mb-2">Điều dưỡng đã chọn</Text>
+            <View className="flex-row items-center p-4">
+              <Image
+                source={{
+                  uri:
+                    parsedNurseData.avatar ||
+                    "https://images.careerviet.vn/content/images/dieu-duong-vien-lam-cong-viec-gi-nhung-ky-nang-can-trang-bi-careerbuilder.png",
+                }}
+                className="w-16 h-16 rounded-lg mr-4"
+              />
+              <View>
+                <Text className="text-lg font-pbold">
+                  {parsedNurseData.fullName || "Nguyễn Thị B"}
+                </Text>
+                <Text className="text-sm text-gray-500 font-pmedium mt-2">
+                  {parsedNurseData.rating
+                    ? `${parsedNurseData.rating} ★★★★★ (${
+                        parsedNurseData.reviews || 0
+                      })`
+                    : "4,8 ★★★★★ (120)"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        <Text className="text-lg font-pbold mb-2">Gói dịch vụ</Text>
+        {packageData.services.map((service: Service, index: number) => (
+          <View key={index} className="p-4">
+            <View className="mb-4 pb-4 border-b border-gray-200">
+              <View className="gap-2">
+                <Text className="text-base font-pbold">{service.name}</Text>
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-base text-gray-500 font-psemibold">
+                    {convertDuration(service.duration)}
+                  </Text>
+                  <Text className="text-base text-gray-500 font-psemibold">
+                    -
+                  </Text>
+                  <Text className="text-base font-pbold">
+                    {(service.cost * service.quantity).toLocaleString()} VND
+                  </Text>
+                </View>
+                <Text className="text-sm text-gray-500 font-psemibold">
+                  Ghi chú: {service.note}
+                </Text>
+              </View>
             </View>
           </View>
         ))}
@@ -190,14 +319,21 @@ const ConfirmScreen = () => {
           <View className="flex-row justify-between items-center mb-2">
             <Text className="text-base font-pbold">Tổng tiền</Text>
             <Text className="text-base font-pbold">
-              {totalPrice.toLocaleString()} đ
+              {totalPrice.toLocaleString()} VND
+            </Text>
+          </View>
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-base font-pbold">Tổng thời gian:</Text>
+            <Text className="text-base font-pbold">
+              {packageData.totalDuration} phút
             </Text>
           </View>
         </View>
 
+        {/* Phương thức thanh toán */}
         <View className="mb-6">
           <Text className="text-lg font-pbold mb-2">
-            {dummyData.paymentMethod}
+            Phương thức thanh toán
           </Text>
           <View className="flex-row items-center">
             <MaterialIcons
@@ -211,24 +347,13 @@ const ConfirmScreen = () => {
             </Text>
           </View>
         </View>
-
-        <View className="mb-6">
-          <Text className="text-lg font-pbold mb-2">Ghi chú</Text>
-          <TextInput
-            className="border border-gray-300 rounded-lg p-3 h-24 text-sm font-psemibold text-gray-500"
-            multiline
-            placeholder="Nhập ghi chú của bạn..."
-            style={{ textAlignVertical: "top", textAlign: "left" }}
-          />
-        </View>
       </ScrollView>
 
-      {/* Phần cố định ở cuối trang */}
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-300">
         <View className="flex-row justify-between items-center w-full">
           <View>
             <Text className="text-lg font-pbold text-gray-800">
-              {totalPrice.toLocaleString()} đ
+              {totalPrice.toLocaleString()} VND
             </Text>
             <Text className="text-sm text-gray-500 font-pmedium">
               {totalServices} dịch vụ • {formattedDuration}
@@ -237,10 +362,10 @@ const ConfirmScreen = () => {
           <TouchableOpacity
             className="bg-[#64CbDB] py-3 px-6 rounded-lg"
             onPress={handleSubmit}
-            disabled={isLoading} // Vô hiệu hóa nút khi đang loading
+            disabled={isLoading}
           >
             {isLoading ? (
-              <ActivityIndicator color="#ffffff" /> // Hiển thị loading
+              <ActivityIndicator color="#ffffff" />
             ) : (
               <Text className="text-white font-pbold">Xác nhận</Text>
             )}
@@ -248,19 +373,14 @@ const ConfirmScreen = () => {
         </View>
       </View>
 
-      {/* Modal thông báo */}
-      <Modal
-        visible={isModalVisible}
-        transparent={true}
-        animationType="fade"
-      >
+      <Modal visible={isModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/50">
           <View className="bg-white p-6 rounded-lg w-96">
             <Image
               source={{
                 uri: isSuccess
-                  ? "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s" // Icon thành công
-                  : "https://cdn-icons-png.flaticon.com/512/6659/6659895.png", // Icon thất bại
+                  ? "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s"
+                  : "https://cdn-icons-png.flaticon.com/512/6659/6659895.png",
               }}
               className="w-32 h-32 mx-auto mb-4 bg-white"
             />

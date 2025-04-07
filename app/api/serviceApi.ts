@@ -1,5 +1,5 @@
 import http from "@/lib/http";
-import { CategoryWithServicesRes } from "@/types/service";
+import { CategoryWithServicesRes, ServicePackRes, ServiceTaskRes } from "@/types/service";
 
 const serviceApiRequest = {
   getListCateAndService: (serviceName: string | null) =>
@@ -9,6 +9,14 @@ const serviceApiRequest = {
       }`,
       { apiPrefix: "appointment" }
     ),
+  getListServicePack: (serviceId: string | string[]) =>
+    http.get<ServicePackRes>(`services/${serviceId}/svcpackage`, {
+      apiPrefix: "appointment",
+    }),
+  getListServiceTask: (serviceId: string | string[]) =>
+    http.get<ServiceTaskRes>(`svcpackage/${serviceId}/svctask`, {
+      apiPrefix: "appointment",
+    }),
 };
 
 export default serviceApiRequest;

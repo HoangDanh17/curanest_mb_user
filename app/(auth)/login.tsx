@@ -325,7 +325,7 @@ const LoginScreen: React.FC = () => {
         style={{ width: "100%", transform: [{ translateX: buttonAnimation }] }}
       >
         <TouchableOpacity
-          className={`w-full py-2 rounded-lg items-center ${
+          className={`w-full py-3 rounded-lg items-center ${
             loading ? "bg-teal-200" : "bg-teal-300"
           }`}
           onPress={handleLogin}

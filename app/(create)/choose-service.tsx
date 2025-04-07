@@ -13,11 +13,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ImageUrl from "@/data/ImageUrl";
 import HeaderBack from "@/components/HeaderBack";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { CategoryWithServices } from "@/types/service";
 import serviceApiRequest from "@/app/api/serviceApi";
 
 const ChooseServiceScreen = () => {
+  const { patient } = useLocalSearchParams();
   const [searchText, setSearchText] = useState("");
   const [searchResult, setSearchResult] = useState<
     CategoryWithServices[] | null
@@ -48,6 +49,7 @@ const ChooseServiceScreen = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <ImageBackground
@@ -110,7 +112,7 @@ const ChooseServiceScreen = () => {
                           onPress={() =>
                             router.push({
                               pathname: "/(create)/choose-pack",
-                              params: { id: service.id },
+                              params: { id: service.id, patient: patient },
                             })
                           }
                         >

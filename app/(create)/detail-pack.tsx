@@ -4,37 +4,27 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ImageBackground,
   SafeAreaView,
   TextInput,
   Alert,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
-import ImageUrl from "@/data/ImageUrl";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  duration: number; // Thời gian (phút) cho unit = 1
-  datetime: string;
-  unit: number;
-  price: number; // Giá cho unit = 1
-  is_must_have: boolean;
-}
+import serviceApiRequest from "@/app/api/serviceApi";
+import { ServiceTask } from "@/types/service";
+import SimpleLineIcons from "@expo/vector-icons/SimpleLineIcons";
 
 interface ServiceItemProps {
-  service: Service;
+  service: ServiceTask;
   index: number;
   onDelete: (id: string) => void;
-  onUnitChange: (id: string, newUnit: number) => void;
+  onQuantityChange: (id: string, newQuantity: number) => void;
   note: string;
   onNoteChange: (id: string, text: string) => void;
 }
@@ -43,11 +33,14 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
   service,
   index,
   onDelete,
-  onUnitChange,
+  onQuantityChange,
   note,
   onNoteChange,
 }) => {
   const animation = useSharedValue(0);
+  const [quantity, setQuantity] = useState(
+    service.unit === "time" ? service["est-duration"] : 1 // Mặc định 1 cho quantity
+  );
 
   useEffect(() => {
     animation.value = withDelay(index * 100, withTiming(1, { duration: 500 }));
@@ -58,75 +51,106 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
     transform: [{ translateY: (1 - animation.value) * 20 }],
   }));
 
-  // Xác nhận trước khi xóa dịch vụ
   const confirmDelete = () => {
     Alert.alert("Xác nhận", "Bạn có chắc chắn muốn xóa dịch vụ này không?", [
       { text: "Hủy", style: "cancel" },
-      { text: "Xóa", style: "destructive", onPress: () => onDelete(service.id) },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: () => onDelete(service.id),
+      },
     ]);
   };
+
+  const priceOfStep = Number(service["price-of-step"]) || 1;
+  const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
+  const additionalUnits = Math.floor(Math.max(0, quantityMultiplier - 1));
+  const totalCost =
+    Number(service.cost) + Number(service["additional-cost"]) * additionalUnits;
+  const adjustedDuration =
+    service.unit === "time"
+      ? quantity
+      : service["est-duration"] * quantityMultiplier;
+
+  const unitLabel = service.unit === "time" ? "phút" : "lần";
+  const displayQuantity =
+    service.unit === "time" ? quantity : quantity / priceOfStep;
 
   return (
     <Animated.View
       style={animatedStyle}
-      className="p-4 bg-white rounded-lg mb-3 shadow"
+      className="p-4 bg-white rounded-lg mb-3 shadow gap-2"
     >
       <View className="flex-row items-center justify-between">
         <Text className="text-lg font-pbold text-gray-800 flex-1">
-          {service.name}
+          {service["task-order"]}. {service.name}
         </Text>
-        {!service.is_must_have && (
+        {!service["is-must-have"] && (
           <TouchableOpacity
             onPress={confirmDelete}
-            className="bg-red-500 rounded-2xl px-6 py-2"
+            className="w-10 h-10 bg-red-100 rounded-full items-center justify-center ml-1 font-pextrabold"
           >
-            <Text className="text-sm text-white font-pbold">Xóa</Text>
+            <SimpleLineIcons name="trash" size={20} color="red" />
           </TouchableOpacity>
         )}
       </View>
-
-      <Text className="text-sm text-gray-600 mt-1 font-pmedium">
+      <Text className="text-gray-600 mt-1 font-pmedium">
         {service.description}
       </Text>
-      <Text className="text-sm text-gray-500 mt-1 font-pmedium">
-        Thời gian: {service.datetime}
-      </Text>
 
-      {/* Thay đổi số lượng */}
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row justify-end items-center mt-3 space-x-2">
+      {service["price-of-step"] !== 0 && (
+        <Text className="text-red-500 mt-1 font-pmedium">
+          Chi phí nếu sử dụng thêm:{" "}
+          {service["additional-cost"].toLocaleString()} VND /{" "}
+          {service["price-of-step"]} {service.unit === "time" ? "phút" : "lần"}
+        </Text>
+      )}
+
+      <View className="flex-col mt-3">
+        <View className="flex flex-col items-end">
+          <Text className="text-gray-600 font-pbold">
+            {adjustedDuration} phút
+          </Text>
+          <Text className="text-gray-700 font-pbold">
+            {totalCost.toLocaleString()} VND
+          </Text>
+        </View>
+      </View>
+
+      {service["price-of-step"] !== 0 && (
+        <View className="flex-row items-center justify-end space-x-2">
           <TouchableOpacity
-            onPress={() => onUnitChange(service.id, Math.max(1, service.unit - 1))}
-            className="px-4 bg-gray-200 rounded"
+            onPress={() => {
+              const newQuantity = Math.max(
+                service.unit === "time" ? service["est-duration"] : 1, // Giới hạn tối thiểu là 1 cho quantity
+                quantity - service["price-of-step"]
+              );
+              setQuantity(newQuantity);
+              onQuantityChange(service.id, newQuantity);
+            }}
+            className="w-9 h-9 bg-white rounded-full items-center justify-center border border-gray-200"
           >
             <Text className="text-lg">-</Text>
           </TouchableOpacity>
           <Text className="text-lg font-psemibold text-gray-800 mx-2">
-            {service.unit}
+            {displayQuantity} {unitLabel}
           </Text>
           <TouchableOpacity
-            onPress={() => onUnitChange(service.id, service.unit + 1)}
-            className="px-4 bg-gray-200 rounded"
+            onPress={() => {
+              const newQuantity = quantity + service["price-of-step"];
+              setQuantity(newQuantity);
+              onQuantityChange(service.id, newQuantity);
+            }}
+            className="w-9 h-9 bg-white rounded-full items-center justify-center border border-gray-200"
           >
             <Text className="text-lg">+</Text>
           </TouchableOpacity>
         </View>
+      )}
 
-        <View className="mt-3 flex-row justify-end">
-          <View className="flex flex-col items-end">
-            <Text className="text-gray-600 font-pmedium">
-              {service.unit} lần
-            </Text>
-            <Text className="text-gray-600 font-pmedium">
-              {service.duration * service.unit} phút
-            </Text>
-            <Text className="text-gray-700 font-pmedium">
-              Giá: {(service.price * service.unit).toLocaleString()} VND
-            </Text>
-          </View>
-        </View>
-      </View>
-
+      <Text className="text-lg font-pbold text-gray-800">
+        Ghi chú (optional)
+      </Text>
       <TextInput
         placeholder="Nhập lưu ý cho task này"
         value={note}
@@ -140,20 +164,60 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
   );
 };
 
-const DetailPackScreen: React.FC = () => {
-  const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
-  const [services, setServices] = useState<Service[]>([
-    { id: "1", name: "Chăm sóc bệnh nhân", description: "Dịch vụ chăm sóc bệnh nhân tại nhà với đội ngũ y tá chuyên nghiệp.", duration: 10, datetime: "2023-03-15 14:00", unit: 1, price: 100000, is_must_have: false },
-    { id: "2", name: "Phục hồi chức năng", description: "Hỗ trợ phục hồi chức năng sau phẫu thuật, đảm bảo an toàn và hiệu quả.", duration: 20, datetime: "2023-03-15 15:00", unit: 2, price: 200000, is_must_have: true },
-    { id: "3", name: "Tư vấn sức khỏe", description: "Tư vấn chuyên sâu về sức khỏe và dinh dưỡng.", duration: 30, datetime: "2023-03-15 16:00", unit: 3, price: 300000, is_must_have: false },
-  ]);
-
+const DetailPackScreen = () => {
+  const { id, name, day, description, serviceId, timeInter, patient } =
+    useLocalSearchParams();
+  const [loading, setLoading] = useState<boolean>(true);
+  const [services, setServices] = useState<ServiceTask[]>([]);
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
+  const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
 
-  const handleUnitChange = (id: string, newUnit: number) => {
-    setServices((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, unit: newUnit } : s))
-    );
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await serviceApiRequest.getListServiceTask(id);
+      const apiData = response.payload.data;
+
+      const mappedServices: ServiceTask[] = apiData.map((item: any) => ({
+        id: item.id,
+        "svcpackage-id": item["svcpackage-id"],
+        "is-must-have": item["is-must-have"],
+        "task-order": item["task-order"],
+        name: item.name,
+        description: item.description,
+        "staff-advice": item["staff-advice"],
+        "est-duration": item["est-duration"],
+        cost: item.cost,
+        "additional-cost": item["additional-cost"],
+        "additional-cost-desc": item["additional-cost-desc"],
+        unit: item.unit,
+        "price-of-step": item["price-of-step"],
+        status: item.status,
+      }));
+
+      setServices(mappedServices);
+      const initialQuantities = mappedServices.reduce((acc, service) => {
+        acc[service.id] =
+          service.unit === "time" ? Number(service["est-duration"]) || 1 : 1; // Mặc định 1 cho quantity
+        return acc;
+      }, {} as { [key: string]: number });
+      setQuantities(initialQuantities);
+    } catch (error) {
+      console.error("Error fetching service tasks:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const handleQuantityChange = (id: string, newQuantity: number) => {
+    setQuantities((prev) => ({
+      ...prev,
+      [id]: newQuantity,
+    }));
   };
 
   const handleDelete = (id: string) => {
@@ -163,6 +227,11 @@ const DetailPackScreen: React.FC = () => {
       delete newNotes[id];
       return newNotes;
     });
+    setQuantities((prev) => {
+      const newQuantities = { ...prev };
+      delete newQuantities[id];
+      return newQuantities;
+    });
   };
 
   const handleNoteChange = (id: string, text: string) => {
@@ -170,26 +239,121 @@ const DetailPackScreen: React.FC = () => {
   };
 
   const handleSubmit = () => {
+    const packageInfo = {
+      packageId: id,
+      packageName: name,
+      day: day,
+      serviceId: serviceId,
+      totalDuration: totalDuration,
+      totalPrice: totalPrice,
+      services: services.map((service) => ({
+        id: service.id,
+        name: service.name,
+        quantity: quantities[service.id],
+        note: notes[service.id] || "",
+        cost: service.cost,
+        additionalCost: service["additional-cost"],
+        duration:
+          service.unit === "time"
+            ? quantities[service.id]
+            : service["est-duration"] *
+              (quantities[service.id] /
+                (Number(service["price-of-step"]) || 1)),
+      })),
+      description: description,
+    };
+
+    const packageInfoData = JSON.stringify(packageInfo);
     router.push({
-      pathname: "/(create)/time-appointment",
-      params: { id: "123", type },
+      pathname: "/(create)/select-type-and-time",
+      params: {
+        id: id,
+        day: day,
+        totalDuration: totalDuration,
+        serviceId: serviceId,
+        packageInfo: packageInfoData,
+        timeInter: timeInter,
+        patient: patient,
+      },
     });
   };
 
+  const totalDuration = services.reduce((sum, service) => {
+    const priceOfStep = Number(service["price-of-step"]) || 1;
+    const quantity = Number(quantities[service.id]) || 1;
+    const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
+    const duration =
+      service.unit === "time"
+        ? quantity
+        : service["est-duration"] * quantityMultiplier;
+    return sum + duration;
+  }, 0);
+
+  const totalPrice = services.reduce((sum, service) => {
+    const priceOfStep = Number(service["price-of-step"]) || 1;
+    const quantity = Number(quantities[service.id]) || 1;
+    const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
+    const additionalUnits = Math.floor(Math.max(0, quantityMultiplier - 1));
+    return (
+      sum +
+      (Number(service.cost) +
+        Number(service["additional-cost"]) * additionalUnits)
+    );
+  }, 0);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <Text className="text-center text-lg">Đang tải...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
-      <ImageBackground source={{ uri: ImageUrl.imageCreate }} className="flex-1" resizeMode="cover">
-        <ScrollView contentContainerStyle={{ padding: 20 }}>
-          <HeaderBack />
-          <Text className="text-2xl font-pbold text-gray-800 my-5">Chi tiết gói (ID: {id})</Text>
-          {services.map((s, i) => (
-            <ServiceItem key={s.id} service={s} index={i} onDelete={handleDelete} onUnitChange={handleUnitChange} note={notes[s.id] || ""} onNoteChange={handleNoteChange} />
-          ))}
-          <TouchableOpacity onPress={handleSubmit} className="bg-[#64D1CB] px-6 py-3 rounded-lg items-center">
-            <Text className="text-white text-base font-pbold">Tiếp theo</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </ImageBackground>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, marginTop: 4 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <HeaderBack />
+        <Text className="text-2xl font-pbold text-gray-800 my-5 mb-2">
+          {name}
+        </Text>
+        <Text className="text-gray-600 font-pmedium mb-4 mx-2">
+          {description}
+        </Text>
+        {services.map((s, i) => (
+          <ServiceItem
+            key={s.id}
+            service={s}
+            index={i}
+            onDelete={handleDelete}
+            onQuantityChange={handleQuantityChange}
+            note={notes[s.id] || ""}
+            onNoteChange={handleNoteChange}
+          />
+        ))}
+        <View className="mt-5 p-4 bg-white rounded-lg shadow">
+          <View className="flex-row justify-between">
+            <Text className="text-gray-600 font-pbold">Tổng thời gian:</Text>
+            <Text className="text-red-600 font-pbold">
+              {totalDuration} phút
+            </Text>
+          </View>
+          <View className="flex-row justify-between mt-1">
+            <Text className="text-gray-600 font-pbold">Tổng giá:</Text>
+            <Text className="text-red-600 font-pbold">
+              {totalPrice.toLocaleString()} VND
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          onPress={handleSubmit}
+          className="bg-[#64D1CB] px-6 py-3 rounded-lg items-center mt-5"
+        >
+          <Text className="text-white text-base font-pbold">Tiếp theo</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };

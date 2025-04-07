@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import "@/styles/global.css";
 import SearchProvider from "@/app/provider";
+import { StatusBar } from "react-native";
 
 // Import the SearchProvider
 
@@ -75,6 +76,11 @@ export default function RootLayout() {
           options={{ headerShown: false }}
         />
       </Stack>
+      <StatusBar
+        translucent={true} // Làm thanh trạng thái trong suốt
+        backgroundColor="transparent" // Xóa màu nền mặc định
+        barStyle="dark-content" // Chọn kiểu chữ/icon (dark-content hoặc light-content)
+      />
     </SearchProvider>
   );
 }
