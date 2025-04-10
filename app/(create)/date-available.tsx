@@ -7,12 +7,19 @@ import WheelScrollPicker from "react-native-wheel-scrollview-picker";
 import { Text } from "react-native";
 
 const DateAvailableScreen = () => {
-  const { id, day, totalDuration, packageInfo, timeInter, patient } =
-    useLocalSearchParams();
-
+  const {
+    id,
+    day,
+    totalDuration,
+    packageInfo,
+    timeInter,
+    patient,
+    nurseInfo,
+    discount,
+  } = useLocalSearchParams();
   const duration = Number(totalDuration);
   const numDays = Math.max(Number(day), 1);
-  const interval = Number(timeInter);
+  const interval = Number(timeInter) === 0 ? 1 : Number(timeInter);
 
   const [dates, setDates] = useState<Date[]>(
     Array.from({ length: numDays }, (_, index) => {
@@ -39,8 +46,6 @@ const DateAvailableScreen = () => {
     String(i + 8).padStart(2, "0")
   );
   const minutes: string[] = ["00", "15", "30", "45"];
-
-  const selectedDates = dates.map((date) => date.toISOString().split("T")[0]);
 
   const formatTimeWithAmPm = (time: string): string => {
     const [hourStr, minute] = time.split(":");
@@ -213,14 +218,15 @@ const DateAvailableScreen = () => {
       duration: `${duration} phút`,
     }));
 
-    console.log("🚀 ~ appointmentData ~ appointmentData:", appointmentData);
-
     router.push({
       pathname: "/(create)/confirm-appointment",
       params: {
         packageInfo: packageInfo,
         patient: patient,
         listDate: JSON.stringify(appointmentData),
+        nurseInfo: nurseInfo,
+        discount: discount,
+        day: day,
       },
     });
   };
