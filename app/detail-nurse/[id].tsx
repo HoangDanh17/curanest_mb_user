@@ -257,7 +257,7 @@ const DetailNurseScreen = () => {
               onPress={() =>
                 router.push({
                   pathname: "/(create)/choose-profile",
-                  params: { id: id },
+                  params: { id: id, nurseInfo: JSON.stringify(detailData) },
                 })
               }
               className="bg-[#A8E0E9] p-3 rounded-md mt-6"

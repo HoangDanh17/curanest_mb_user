@@ -52,6 +52,9 @@ const ServiceCategoryCard = ({
     ? tasks.reduce((sum, task) => sum + task.cost, 0)
     : 0;
 
+  const discountedPrice =
+    pkg.discount > 0 ? totalPrice * (1 - pkg.discount / 100) : totalPrice;
+
   const animationProgress = useSharedValue(0);
 
   useEffect(() => {
@@ -169,10 +172,10 @@ const ServiceCategoryCard = ({
                     </Text>
                   </View>
                   <View className="flex-row items-center justify-between">
-                    <Text className="font-pregular text-gray-700 ">
+                    <Text className="font-pregular text-gray-700">
                       {task["est-duration"]} phút
                     </Text>
-                    <Text className="font-pregular text-gray-700 ">
+                    <Text className="font-pregular text-gray-700">
                       {task.cost.toLocaleString()} VND / lần
                     </Text>
                   </View>
@@ -192,11 +195,18 @@ const ServiceCategoryCard = ({
                 {totalDuration} phút
               </Text>
             </View>
-            <View className="flex-row justify-between items-center mb-4">
+            <View className="flex-row justify-between mb-4">
               <Text className="font-pmedium text-gray-800">Tổng chi phí</Text>
-              <Text className="font-pbold text-red-600">
-                {totalPrice.toLocaleString()} VND
-              </Text>
+              <View className="flex-col items-end">
+                {pkg.discount > 0 && (
+                  <Text className="text-gray-500 font-pmedium line-through">
+                    {totalPrice.toLocaleString()} VND
+                  </Text>
+                )}
+                <Text className="font-pbold text-red-600">
+                  {Math.round(discountedPrice).toLocaleString()} VND
+                </Text>
+              </View>
             </View>
             <TouchableOpacity
               onPress={() => onChoose(pkg)}
@@ -212,8 +222,9 @@ const ServiceCategoryCard = ({
     </View>
   );
 };
+
 const ChoosingPackScreen = () => {
-  const { id, patient } = useLocalSearchParams();
+  const { id, patient, nurseInfo } = useLocalSearchParams();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [selectedCategoryName, setSelectedCategoryName] = useState<
     string | null
@@ -274,7 +285,9 @@ const ChoosingPackScreen = () => {
         description: pkg.description as string,
         day: pkg["combo-days"] as number,
         timeInter: pkg["time-interval"] as number,
+        discount: pkg.discount as number,
         patient: patient,
+        nurseInfo: nurseInfo,
       },
     });
   }, []);

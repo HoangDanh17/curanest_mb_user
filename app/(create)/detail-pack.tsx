@@ -25,22 +25,48 @@ interface ServiceItemProps {
   index: number;
   onDelete: (id: string) => void;
   onQuantityChange: (id: string, newQuantity: number) => void;
+  onNoteChange: (id: string, note: string) => void;
   note: string;
-  onNoteChange: (id: string, text: string) => void;
 }
+
+const calculateServiceMetrics = (service: ServiceTask, quantity: number) => {
+  const priceOfStep = Number(service["price-of-step"]) || 1;
+  const initialQuantity = service.unit === "time" ? service["est-duration"] : 1;
+  const excessQuantity = Math.max(0, quantity - initialQuantity);
+  const additionalUnits =
+    priceOfStep === 0 ? 0 : Math.floor(excessQuantity / priceOfStep);
+  const additionalCost = Number(service["additional-cost"]) * additionalUnits;
+  const totalCost = Number(service.cost) + additionalCost;
+  const duration =
+    service.unit === "time"
+      ? quantity
+      : service["est-duration"] * (quantity / priceOfStep);
+
+  const totalUnit = priceOfStep === 0 ? 1 : Math.max(1, 1 + additionalUnits);
+
+  return {
+    additionalCost,
+    totalCost,
+    duration,
+    additionalUnits,
+    displayQuantity:
+      service.unit === "time" ? quantity : quantity / priceOfStep,
+    unitLabel: service.unit === "time" ? "phút" : "lần",
+    totalUnit,
+  };
+};
 
 const ServiceItem: React.FC<ServiceItemProps> = ({
   service,
   index,
   onDelete,
   onQuantityChange,
-  note,
   onNoteChange,
+  note,
 }) => {
   const animation = useSharedValue(0);
-  const [quantity, setQuantity] = useState(
-    service.unit === "time" ? service["est-duration"] : 1 // Mặc định 1 cho quantity
-  );
+  const initialQuantity = service.unit === "time" ? service["est-duration"] : 1;
+  const [quantity, setQuantity] = useState(initialQuantity);
 
   useEffect(() => {
     animation.value = withDelay(index * 100, withTiming(1, { duration: 500 }));
@@ -62,19 +88,23 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
     ]);
   };
 
-  const priceOfStep = Number(service["price-of-step"]) || 1;
-  const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
-  const additionalUnits = Math.floor(Math.max(0, quantityMultiplier - 1));
-  const totalCost =
-    Number(service.cost) + Number(service["additional-cost"]) * additionalUnits;
-  const adjustedDuration =
-    service.unit === "time"
-      ? quantity
-      : service["est-duration"] * quantityMultiplier;
+  const {
+    additionalCost,
+    totalCost,
+    duration,
+    additionalUnits,
+    displayQuantity,
+    unitLabel,
+    totalUnit,
+  } = calculateServiceMetrics(service, quantity);
 
-  const unitLabel = service.unit === "time" ? "phút" : "lần";
-  const displayQuantity =
-    service.unit === "time" ? quantity : quantity / priceOfStep;
+  const priceOfStep = Number(service["price-of-step"]) || 1;
+  const showAdditionalCost = additionalCost > 0;
+
+  const handleQuantityUpdate = (newQuantity: number) => {
+    setQuantity(newQuantity);
+    onQuantityChange(service.id, newQuantity);
+  };
 
   return (
     <Animated.View
@@ -88,7 +118,7 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
         {!service["is-must-have"] && (
           <TouchableOpacity
             onPress={confirmDelete}
-            className="w-10 h-10 bg-red-100 rounded-full items-center justify-center ml-1 font-pextrabold"
+            className="w-10 h-10 bg-red-100 rounded-full items-center justify-center ml-1"
           >
             <SimpleLineIcons name="trash" size={20} color="red" />
           </TouchableOpacity>
@@ -97,37 +127,34 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
       <Text className="text-gray-600 mt-1 font-pmedium">
         {service.description}
       </Text>
-
       {service["price-of-step"] !== 0 && (
         <Text className="text-red-500 mt-1 font-pmedium">
           Chi phí nếu sử dụng thêm:{" "}
           {service["additional-cost"].toLocaleString()} VND /{" "}
-          {service["price-of-step"]} {service.unit === "time" ? "phút" : "lần"}
+          {service["price-of-step"]} {unitLabel}
         </Text>
       )}
-
       <View className="flex-col mt-3">
         <View className="flex flex-col items-end">
-          <Text className="text-gray-600 font-pbold">
-            {adjustedDuration} phút
-          </Text>
+          <Text className="text-gray-600 font-pbold">{duration} phút</Text>
           <Text className="text-gray-700 font-pbold">
-            {totalCost.toLocaleString()} VND
+            {service.cost.toLocaleString()} VND
           </Text>
+          {showAdditionalCost && (
+            <Text className="text-red-700 font-pbold">
+              + {additionalCost.toLocaleString()} VND (x{additionalUnits})
+            </Text>
+          )}
         </View>
       </View>
-
       {service["price-of-step"] !== 0 && (
         <View className="flex-row items-center justify-end space-x-2">
           <TouchableOpacity
-            onPress={() => {
-              const newQuantity = Math.max(
-                service.unit === "time" ? service["est-duration"] : 1, // Giới hạn tối thiểu là 1 cho quantity
-                quantity - service["price-of-step"]
-              );
-              setQuantity(newQuantity);
-              onQuantityChange(service.id, newQuantity);
-            }}
+            onPress={() =>
+              handleQuantityUpdate(
+                Math.max(initialQuantity, quantity - priceOfStep)
+              )
+            }
             className="w-9 h-9 bg-white rounded-full items-center justify-center border border-gray-200"
           >
             <Text className="text-lg">-</Text>
@@ -136,48 +163,51 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
             {displayQuantity} {unitLabel}
           </Text>
           <TouchableOpacity
-            onPress={() => {
-              const newQuantity = quantity + service["price-of-step"];
-              setQuantity(newQuantity);
-              onQuantityChange(service.id, newQuantity);
-            }}
+            onPress={() => handleQuantityUpdate(quantity + priceOfStep)}
             className="w-9 h-9 bg-white rounded-full items-center justify-center border border-gray-200"
           >
             <Text className="text-lg">+</Text>
           </TouchableOpacity>
         </View>
       )}
-
-      <Text className="text-lg font-pbold text-gray-800">
-        Ghi chú (optional)
-      </Text>
-      <TextInput
-        placeholder="Nhập lưu ý cho task này"
-        value={note}
-        onChangeText={(text) => onNoteChange(service.id, text)}
-        multiline
-        numberOfLines={2}
-        className="border rounded-lg p-2 mt-2 h-24 font-psemibold text-gray-400"
-        style={{ textAlignVertical: "top", textAlign: "left" }}
-      />
+      <View className="mb-2">
+        <Text className="text-lg font-pbold text-gray-800">Ghi chú</Text>
+        <TextInput
+          placeholder="Nhập ghi chú cho task này"
+          value={note}
+          onChangeText={(text) => onNoteChange(service.id, text)}
+          multiline
+          numberOfLines={3}
+          className="border rounded-lg p-2 mt-2 h-20 font-psemibold text-gray-500"
+          style={{ textAlignVertical: "top", textAlign: "left" }}
+        />
+      </View>
     </Animated.View>
   );
 };
 
 const DetailPackScreen = () => {
-  const { id, name, day, description, serviceId, timeInter, patient } =
-    useLocalSearchParams();
+  const {
+    id,
+    name,
+    day,
+    description,
+    serviceId,
+    timeInter,
+    patient,
+    nurseInfo,
+    discount,
+  } = useLocalSearchParams();
   const [loading, setLoading] = useState<boolean>(true);
   const [services, setServices] = useState<ServiceTask[]>([]);
-  const [notes, setNotes] = useState<{ [key: string]: string }>({});
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
+  const [notes, setNotes] = useState<{ [key: string]: string }>({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const response = await serviceApiRequest.getListServiceTask(id);
       const apiData = response.payload.data;
-
       const mappedServices: ServiceTask[] = apiData.map((item: any) => ({
         id: item.id,
         "svcpackage-id": item["svcpackage-id"],
@@ -196,12 +226,27 @@ const DetailPackScreen = () => {
       }));
 
       setServices(mappedServices);
-      const initialQuantities = mappedServices.reduce((acc, service) => {
-        acc[service.id] =
-          service.unit === "time" ? Number(service["est-duration"]) || 1 : 1; // Mặc định 1 cho quantity
-        return acc;
-      }, {} as { [key: string]: number });
-      setQuantities(initialQuantities);
+      setQuantities(
+        mappedServices.reduce(
+          (acc, service) => ({
+            ...acc,
+            [service.id]:
+              service.unit === "time"
+                ? Number(service["est-duration"]) || 1
+                : 1,
+          }),
+          {} as { [key: string]: number }
+        )
+      );
+      setNotes(
+        mappedServices.reduce(
+          (acc, service) => ({
+            ...acc,
+            [service.id]: "",
+          }),
+          {} as { [key: string]: string }
+        )
+      );
     } catch (error) {
       console.error("Error fetching service tasks:", error);
     } finally {
@@ -214,92 +259,133 @@ const DetailPackScreen = () => {
   }, [id]);
 
   const handleQuantityChange = (id: string, newQuantity: number) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: newQuantity,
-    }));
+    setQuantities((prev) => ({ ...prev, [id]: newQuantity }));
+  };
+
+  const handleNoteChange = (id: string, note: string) => {
+    setNotes((prev) => ({ ...prev, [id]: note }));
   };
 
   const handleDelete = (id: string) => {
     setServices((prev) => prev.filter((s) => s.id !== id));
-    setNotes((prev) => {
-      const newNotes = { ...prev };
-      delete newNotes[id];
-      return newNotes;
-    });
     setQuantities((prev) => {
       const newQuantities = { ...prev };
       delete newQuantities[id];
       return newQuantities;
     });
+    setNotes((prev) => {
+      const newNotes = { ...prev };
+      delete newNotes[id];
+      return newNotes;
+    });
   };
 
-  const handleNoteChange = (id: string, text: string) => {
-    setNotes((prev) => ({ ...prev, [id]: text }));
+  const calculateTotals = () => {
+    const totalDuration = services.reduce((sum, service) => {
+      const quantity = Number(quantities[service.id]) || 1;
+      return sum + calculateServiceMetrics(service, quantity).duration;
+    }, 0);
+
+    const totalPricePerDay = services.reduce((sum, service) => {
+      const quantity = Number(quantities[service.id]) || 1;
+      return sum + calculateServiceMetrics(service, quantity).totalCost;
+    }, 0);
+
+    const numberOfDays = Number(day) || 1;
+    const discountPercent = Number(discount) || 0;
+
+    const discountedPricePerDay =
+      discountPercent > 0
+        ? totalPricePerDay * (1 - discountPercent / 100)
+        : totalPricePerDay;
+
+    const totalPriceWithDays = totalPricePerDay * numberOfDays;
+
+    const discountedPriceWithDays =
+      discountPercent > 0
+        ? totalPriceWithDays * (1 - discountPercent / 100)
+        : totalPriceWithDays;
+
+    return {
+      totalDuration,
+      totalPricePerDay,
+      discountedPricePerDay: Math.round(discountedPricePerDay),
+      totalPriceWithDays,
+      discountedPriceWithDays: Math.round(discountedPriceWithDays),
+      numberOfDays,
+      hasDiscount: discountPercent > 0,
+    };
   };
 
   const handleSubmit = () => {
+    const {
+      totalDuration,
+      totalPricePerDay,
+      discountedPricePerDay,
+      totalPriceWithDays,
+      discountedPriceWithDays,
+      numberOfDays,
+    } = calculateTotals();
+
     const packageInfo = {
       packageId: id,
       packageName: name,
       day: day,
       serviceId: serviceId,
-      totalDuration: totalDuration,
-      totalPrice: totalPrice,
-      services: services.map((service) => ({
-        id: service.id,
-        name: service.name,
-        quantity: quantities[service.id],
-        note: notes[service.id] || "",
-        cost: service.cost,
-        additionalCost: service["additional-cost"],
-        duration:
-          service.unit === "time"
-            ? quantities[service.id]
-            : service["est-duration"] *
-              (quantities[service.id] /
-                (Number(service["price-of-step"]) || 1)),
-      })),
-      description: description,
+      totalDuration,
+      totalPrice: numberOfDays > 1 ? totalPriceWithDays : totalPricePerDay,
+      discountedPrice:
+        numberOfDays > 1 ? discountedPriceWithDays : discountedPricePerDay,
+      services: services.map((service) => {
+        const quantity = Number(quantities[service.id]) || 1;
+        const { additionalCost, totalCost, duration, totalUnit } =
+          calculateServiceMetrics(service, quantity);
+        return {
+          id: service.id,
+          name: service.name,
+          quantity,
+          baseCost: Number(service.cost),
+          additionalCost,
+          totalCost,
+          duration,
+          note: notes[service.id] || "",
+          totalUnit,
+        };
+      }),
+      description,
     };
 
-    const packageInfoData = JSON.stringify(packageInfo);
-    router.push({
-      pathname: "/(create)/select-type-and-time",
-      params: {
-        id: id,
-        day: day,
-        totalDuration: totalDuration,
-        serviceId: serviceId,
-        packageInfo: packageInfoData,
-        timeInter: timeInter,
-        patient: patient,
-      },
-    });
+    if (nurseInfo) {
+      router.push({
+        pathname: "/(create)/date-available",
+        params: {
+          id,
+          day,
+          totalDuration,
+          serviceId,
+          packageInfo: JSON.stringify(packageInfo),
+          timeInter,
+          patient,
+          nurseInfo,
+          discount,
+        },
+      });
+    } else {
+      router.push({
+        pathname: "/(create)/select-type-and-time",
+        params: {
+          id,
+          day,
+          totalDuration,
+          serviceId,
+          packageInfo: JSON.stringify(packageInfo),
+          timeInter,
+          patient,
+          discount,
+        },
+      });
+    }
   };
-
-  const totalDuration = services.reduce((sum, service) => {
-    const priceOfStep = Number(service["price-of-step"]) || 1;
-    const quantity = Number(quantities[service.id]) || 1;
-    const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
-    const duration =
-      service.unit === "time"
-        ? quantity
-        : service["est-duration"] * quantityMultiplier;
-    return sum + duration;
-  }, 0);
-
-  const totalPrice = services.reduce((sum, service) => {
-    const priceOfStep = Number(service["price-of-step"]) || 1;
-    const quantity = Number(quantities[service.id]) || 1;
-    const quantityMultiplier = priceOfStep === 0 ? 1 : quantity / priceOfStep;
-    const additionalUnits = Math.floor(Math.max(0, quantityMultiplier - 1));
-    return (
-      sum +
-      (Number(service.cost) +
-        Number(service["additional-cost"]) * additionalUnits)
-    );
-  }, 0);
 
   if (loading) {
     return (
@@ -308,6 +394,16 @@ const DetailPackScreen = () => {
       </SafeAreaView>
     );
   }
+
+  const {
+    totalDuration,
+    totalPricePerDay,
+    discountedPricePerDay,
+    totalPriceWithDays,
+    discountedPriceWithDays,
+    numberOfDays,
+    hasDiscount,
+  } = calculateTotals();
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
@@ -329,8 +425,8 @@ const DetailPackScreen = () => {
             index={i}
             onDelete={handleDelete}
             onQuantityChange={handleQuantityChange}
-            note={notes[s.id] || ""}
             onNoteChange={handleNoteChange}
+            note={notes[s.id] || ""}
           />
         ))}
         <View className="mt-5 p-4 bg-white rounded-lg shadow">
@@ -341,11 +437,37 @@ const DetailPackScreen = () => {
             </Text>
           </View>
           <View className="flex-row justify-between mt-1">
-            <Text className="text-gray-600 font-pbold">Tổng giá:</Text>
-            <Text className="text-red-600 font-pbold">
-              {totalPrice.toLocaleString()} VND
+            <Text className="text-gray-600 font-pbold">
+              Tổng giá {numberOfDays > 1 ? "1 ngày" : ""}:
             </Text>
+            <View className="flex-col items-end">
+              {hasDiscount && (
+                <Text className="text-gray-500 font-pmedium line-through">
+                  {totalPricePerDay.toLocaleString()} VND
+                </Text>
+              )}
+              <Text className="text-red-600 font-pbold">
+                {discountedPricePerDay.toLocaleString()} VND
+              </Text>
+            </View>
           </View>
+          {numberOfDays > 1 && (
+            <View className="flex-row justify-between mt-1">
+              <Text className="text-gray-600 font-pbold">
+                Tổng giá {numberOfDays} ngày:
+              </Text>
+              <View className="flex-col items-end">
+                {hasDiscount && (
+                  <Text className="text-gray-500 font-pmedium line-through">
+                    {totalPriceWithDays.toLocaleString()} VND
+                  </Text>
+                )}
+                <Text className="text-red-600 font-pbold">
+                  {discountedPriceWithDays.toLocaleString()} VND
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
         <TouchableOpacity
           onPress={handleSubmit}

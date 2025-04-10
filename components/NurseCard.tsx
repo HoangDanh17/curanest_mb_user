@@ -9,9 +9,10 @@ import {
   Image,
   Text,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-
+import Ava from "@/assets/images/homepage.png";
 type prop = {
   id: string;
   day: number;
@@ -19,6 +20,7 @@ type prop = {
   packageInfo: string;
   timeInter: number;
   patient: string;
+  discount: number;
 };
 
 const NurseCard = ({
@@ -28,30 +30,68 @@ const NurseCard = ({
   packageInfo,
   timeInter,
   patient,
+  discount,
 }: prop) => {
-  const NurseCardItem = ({ name, role, rating, avatar }: any) => {
+  const [loading, setLoading] = useState(false);
+  const [listNurseData, setListNurseData] = useState<ListNurseData[]>();
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedNurse, setSelectedNurse] = useState<ListNurseData | null>(
+    null
+  );
+
+  const fetchListNurse = async () => {
+    setLoading(true);
+    try {
+      const response = await nurseApiRequest.getListNurse(id);
+      setListNurseData(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching nurses:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchListNurse();
+  }, []);
+
+  const handleConfirm = () => {
+    if (!selectedNurse) return;
+    setShowConfirm(false);
+    router.push({
+      pathname: "/(create)/date-available",
+      params: {
+        id,
+        day: day.toString(),
+        totalDuration: totalDuration.toString(),
+        packageInfo,
+        timeInter: timeInter.toString(),
+        patient,
+        nurseInfo: JSON.stringify(selectedNurse),
+        discount: discount,
+      },
+    });
+  };
+
+  const NurseCardItem = ({ name, role, rating, avatar, item }: any) => {
+    const handlePress = () => {
+      setSelectedNurse(item);
+      setShowConfirm(true);
+    };
+
     return (
       <Pressable
         className="w-[48%] m-1 border border-gray-200 rounded-lg bg-white shadow-sm"
-        onPress={() =>
-          router.push({
-            pathname: "/(create)/date-available",
-            params: {
-              id: id,
-              day: day,
-              totalDuration: totalDuration,
-              packageInfo: packageInfo,
-              timeInter: timeInter,
-              patient: patient,
-            },
-          })
-        }
+        onPress={handlePress}
       >
         <View className="p-4 flex flex-col items-center gap-4">
           <View className="relative">
             <Image
               source={{
-                uri: avatar,
+                uri:
+                  avatar === ""
+                    ? "https://i.pinimg.com/564x/a7/ff/90/a7ff9069f727d093e578528e2355ccff.jpg"
+                    : avatar,
               }}
               className="w-24 h-24 rounded-full"
               resizeMode="center"
@@ -68,25 +108,6 @@ const NurseCard = ({
       </Pressable>
     );
   };
-
-  const [loading, setLoading] = useState(false);
-  const [listNurseData, setListNurseData] = useState<ListNurseData[]>();
-
-  const fetchListNurse = async () => {
-    setLoading(true);
-    try {
-      const response = await nurseApiRequest.getListNurse(id);
-      setListNurseData(response.payload.data);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchListNurse();
-  }, []);
 
   if (loading) {
     return (
@@ -118,9 +139,46 @@ const NurseCard = ({
             role={item["current-work-place"]}
             rating={item.rate}
             avatar={item["nurse-picture"]}
+            item={item}
           />
         )}
       />
+
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showConfirm}
+        onRequestClose={() => setShowConfirm(false)}
+      >
+        <View className="flex-1 bg-black/40 justify-center items-center">
+          <View className="bg-white w-4/5 rounded-2xl p-6 shadow-lg">
+            <Text className="text-xl font-pbold text-center mb-4">
+              Xác nhận
+            </Text>
+            <Text className="text-base text-center mb-6">
+              Bạn có chắc muốn chọn điều dưỡng{" "}
+              <Text className="font-pbold">
+                {selectedNurse?.["nurse-name"]}
+              </Text>
+              ?
+            </Text>
+            <View className="flex-row justify-center gap-6">
+              <Pressable
+                className="bg-gray-200 px-4 py-2 rounded-xl"
+                onPress={() => setShowConfirm(false)}
+              >
+                <Text className="text-black font-pmedium">Hủy</Text>
+              </Pressable>
+              <Pressable
+                className="bg-teal-400 px-4 py-2 rounded-xl"
+                onPress={handleConfirm}
+              >
+                <Text className="text-white font-pmedium">Đồng ý</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 };

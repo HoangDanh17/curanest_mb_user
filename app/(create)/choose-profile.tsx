@@ -23,7 +23,7 @@ import Animated, {
 
 const ChooseProfilePatientScreen = () => {
   const { setIsSearch } = useSearch();
-  const { id } = useLocalSearchParams();
+  const { id, nurseInfo } = useLocalSearchParams();
   const [patientList, setPatientList] = useState<Patient[]>([]);
   const router = useRouter();
 
@@ -42,10 +42,14 @@ const ChooseProfilePatientScreen = () => {
     }, [])
   );
 
-  const handleClick = () => {
+  const handleClick = (item: Patient) => {
     router.push({
       pathname: "/(create)/choose-pack",
-      params: { id: String(id) },
+      params: {
+        id: String(id),
+        nurseInfo: nurseInfo,
+        patient: JSON.stringify(item),
+      },
     });
     setIsSearch(true);
   };
@@ -72,7 +76,7 @@ const ChooseProfilePatientScreen = () => {
 
   const renderItem = ({ item }: { item: Patient }) => (
     <TouchableWithoutFeedback
-      onPress={handleClick}
+      onPress={() => handleClick(item)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >

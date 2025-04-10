@@ -15,7 +15,10 @@ import { Link, router } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LoginBodyType } from "@/types/login";
 import authApiRequest from "@/app/api/authApi";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
+import { Notification, NotificationResponse } from "expo-notifications";
 
 interface FormErrors {
   "phone-number": string;
@@ -44,7 +47,6 @@ const LoginScreen: React.FC = () => {
   const passwordInputAnimation = useRef(new Animated.Value(-300)).current;
   const buttonAnimation = useRef(new Animated.Value(-300)).current;
 
- 
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneRegex = /^(0[1|3|5|7|8|9])+([0-9]{8})\b/;
     if (!phoneNumber) {
@@ -109,8 +111,14 @@ const LoginScreen: React.FC = () => {
         );
         return;
       }
-      await AsyncStorage.setItem('userInfo', JSON.stringify(response.payload.data['account-info']));
-      await AsyncStorage.setItem('accessToken', response.payload.data.token['access_token']);
+      await AsyncStorage.setItem(
+        "userInfo",
+        JSON.stringify(response.payload.data["account-info"])
+      );
+      await AsyncStorage.setItem(
+        "accessToken",
+        response.payload.data.token["access_token"]
+      );
       router.push("/(tabs)/home");
     } catch (error: any) {
       if (error.payload.error.reason_field) {
@@ -340,6 +348,7 @@ const LoginScreen: React.FC = () => {
       </Animated.View>
       <View className="mt-14 flex flex-row">
         <Text className="text-lg font-pmedium">Chưa có tài khoản?</Text>
+
         <Link
           href={"/(auth)/register"}
           className="ml-2 text-teal-600 underline decoration-2 text-lg"

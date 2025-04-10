@@ -12,16 +12,20 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { ListNurseData } from "@/types/nurse";
+import appointmentApiRequest from "@/app/api/appointmentApi";
+import { CreateAppointment } from "@/types/appointment";
 
-// Định nghĩa interface
 interface Service {
-  name: string;
-  duration: number;
-  cost: number;
-  additionalCost: number;
-  quantity: number;
   id: string;
+  name: string;
+  quantity: number;
+  baseCost: number;
+  additionalCost: number;
+  totalCost: number;
+  duration: number;
   note: string;
+  totalUnit: number;
 }
 
 interface PackageData {
@@ -33,6 +37,7 @@ interface PackageData {
   services: Service[];
   totalDuration: number;
   totalPrice: number;
+  discountedPrice?: number;
 }
 
 interface PatientData {
@@ -57,19 +62,11 @@ interface Appointment {
   duration: string;
 }
 
-interface NurseData {
-  fullName: string;
-  rating: number;
-  reviews: number;
-  avatar?: string;
-}
-
 const safeParse = (data: any, name: string) => {
   try {
     if (typeof data === "string") {
       return JSON.parse(data);
     }
-    console.warn(`${name} không phải chuỗi, trả về nguyên bản:`, data);
     return data || null;
   } catch (error) {
     console.error(`Lỗi parse ${name}:`, error);
@@ -77,32 +74,44 @@ const safeParse = (data: any, name: string) => {
   }
 };
 
+const convertToISODate = (dateStr: string, timeStr: string) => {
+  const [day, month, year] = dateStr.split("/");
+
+  const [time, period] = timeStr.split(" ");
+  let [hours, minutes] = time.split(":");
+
+  hours = parseInt(hours, 10).toString();
+  if (period === "PM" && hours !== "12") {
+    hours = (parseInt(hours, 10) + 12).toString();
+  } else if (period === "AM" && hours === "12") {
+    hours = "00";
+  }
+
+  const date = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00Z`);
+
+  if (isNaN(date.getTime())) {
+    throw new Error("Ngày giờ không hợp lệ");
+  }
+
+  date.setHours(date.getHours() - 7); // Trừ 7 tiếng
+  return date.toISOString();
+};
+
 const ConfirmScreen = () => {
-  const { packageInfo, patient, listDate, nurseData } = useLocalSearchParams();
-  console.log("🚀 ~ ConfirmScreen ~ nurseData:", nurseData);
+  const { packageInfo, patient, listDate, nurseInfo, discount, day } =
+    useLocalSearchParams();
   const packageData: PackageData | null = safeParse(packageInfo, "packageInfo");
   const patientData: PatientData | null = safeParse(patient, "patient");
   const listDateData: Appointment[] | null = safeParse(listDate, "listDate");
-  const parsedNurseData: NurseData | null = safeParse(nurseData, "nurseData");
+  const parsedNurseData: ListNurseData | null = safeParse(
+    nurseInfo,
+    "nurseInfo"
+  );
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-
-  const calculateTotal = () => {
-    return (
-      packageData?.services.reduce(
-        (total: number, service: Service) =>
-          total + service.cost * service.quantity,
-        0
-      ) || 0
-    );
-  };
-
-  const countServices = () => {
-    return packageData?.services.length || 0;
-  };
 
   const convertDuration = (duration: number) => {
     const hours = Math.floor(duration / 60);
@@ -114,17 +123,60 @@ const ConfirmScreen = () => {
 
   const handleSubmit = async () => {
     setIsLoading(true);
+
+    if (!listDateData || !packageData || !patientData) {
+      console.log("Dữ liệu đầu vào không đầy đủ:", {
+        listDateData,
+        packageData,
+        patientData,
+      });
+      setIsLoading(false); // Tắt loading nếu dữ liệu không đầy đủ
+      return;
+    }
+
+    const submitData: CreateAppointment = {
+      dates: listDateData
+        .map((appointment) => {
+          try {
+            return convertToISODate(appointment.date, appointment.startTime);
+          } catch (error) {
+            console.error("Lỗi khi chuyển đổi ngày giờ:", error);
+            return null;
+          }
+        })
+        .filter((date) => date !== null),
+      "patient-id": patientData?.id || "",
+      "svcpackage-id": packageData?.packageId || "",
+      "task-infos": packageData.services.map((service) => ({
+        "client-note": service.note || "",
+        "est-duration": service.duration,
+        "svctask-id": service.id,
+        "total-cost": service.totalCost,
+        "total-unit": service.totalUnit,
+      })),
+    };
+
+    if (parsedNurseData && parsedNurseData["nurse-id"]) {
+      submitData["nursing-id"] = parsedNurseData["nurse-id"];
+    }
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const isSuccess = Math.random() > 0.5;
-      setIsSuccess(isSuccess);
-      setIsModalVisible(true);
+      const response = await appointmentApiRequest.createAppointment(
+        submitData
+      );
+      console.log("Dữ liệu submit:", JSON.stringify(submitData, null, 2));
+      console.log("Response từ API:", response);
+
+      if (response) {
+        setIsSuccess(true);
+        setIsModalVisible(true);
+      }
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Lỗi khi gửi API:", error);
       setIsSuccess(false);
-      setIsModalVisible(true);
+      setIsModalVisible(true); // Hiển thị modal lỗi
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Tắt trạng thái loading
     }
   };
 
@@ -133,10 +185,28 @@ const ConfirmScreen = () => {
     router.push("/(tabs)/home");
   };
 
-  const totalPrice = packageData?.totalPrice || calculateTotal();
-  const totalServices = countServices();
+  const handleCloseModal = () => {
+    setIsModalVisible(false); // Đóng modal mà không chuyển hướng
+  };
+
+  const totalPrice = packageData?.totalPrice || 0;
+  const totalServices = packageData?.services.length || 0;
   const totalDuration = packageData?.totalDuration || 0;
   const formattedDuration = convertDuration(totalDuration);
+
+  const discountPercent = Number(discount) || 0;
+  const numberOfDays = Number(day) || 1;
+  const totalPricePerDay = totalPrice / numberOfDays;
+  const discountedPricePerDay =
+    discountPercent > 0
+      ? totalPricePerDay * (1 - discountPercent / 100)
+      : totalPricePerDay;
+  const totalPriceWithDays = totalPrice;
+  const discountedPriceWithDays =
+    discountPercent > 0
+      ? totalPriceWithDays * (1 - discountPercent / 100)
+      : totalPriceWithDays;
+  const hasDiscount = discountPercent > 0;
 
   if (!packageData || !patientData) {
     return (
@@ -158,12 +228,14 @@ const ConfirmScreen = () => {
           <HeaderBack />
           <Text className="text-2xl font-pbold mb-2 my-4 ml-4">Xác nhận</Text>
         </View>
-        <Text className="text-lg font-pbold mb-2">Khách hàng</Text>
+        <Text className="text-lg font-pbold mb-2 text-teal-500">
+          Khách hàng
+        </Text>
 
         <View className="flex-row items-center mb-4 justify-center ml-4 mr-4 border rounded-2xl p-4 border-t-2 border-b-2">
           <Image
             source={{
-              uri: "https://cdn3.iconfinder.com/data/icons/avatar-93/140/female__avatar__lady__women__caretaker-512.png",
+              uri: "https://st2.depositphotos.com/5266903/9710/i/450/depositphotos_97109236-stock-photo-medical-volunteer-circled-icon.jpg",
             }}
             className="w-20 h-20 rounded-lg mr-4"
           />
@@ -181,7 +253,9 @@ const ConfirmScreen = () => {
         </View>
 
         <View className="mb-2">
-          <Text className="text-lg font-pbold mb-2">Thông tin ngày giờ</Text>
+          <Text className="text-lg font-pbold mb-2 text-teal-500">
+            Thông tin ngày giờ
+          </Text>
           {listDateData && listDateData.length > 0 ? (
             listDateData.length > 3 ? (
               <View className="border border-gray-300 rounded-lg bg-white p-4 shadow-sm">
@@ -261,41 +335,43 @@ const ConfirmScreen = () => {
             </Text>
           )}
         </View>
-
         {parsedNurseData && (
           <View className="mb-6">
-            <Text className="text-lg font-pbold mb-2">Điều dưỡng đã chọn</Text>
+            <Text className="text-lg font-pbold mb-2 text-teal-500">
+              Điều dưỡng đã chọn
+            </Text>
             <View className="flex-row items-center p-4">
               <Image
                 source={{
                   uri:
-                    parsedNurseData.avatar ||
-                    "https://images.careerviet.vn/content/images/dieu-duong-vien-lam-cong-viec-gi-nhung-ky-nang-can-trang-bi-careerbuilder.png",
+                    parsedNurseData["nurse-picture"] === ""
+                      ? "https://i.pinimg.com/564x/a7/ff/90/a7ff9069f727d093e578528e2355ccff.jpg"
+                      : parsedNurseData["nurse-picture"],
                 }}
                 className="w-16 h-16 rounded-lg mr-4"
               />
               <View>
                 <Text className="text-lg font-pbold">
-                  {parsedNurseData.fullName || "Nguyễn Thị B"}
+                  {parsedNurseData["nurse-name"]}
                 </Text>
                 <Text className="text-sm text-gray-500 font-pmedium mt-2">
-                  {parsedNurseData.rating
-                    ? `${parsedNurseData.rating} ★★★★★ (${
-                        parsedNurseData.reviews || 0
-                      })`
-                    : "4,8 ★★★★★ (120)"}
+                  {parsedNurseData["current-work-place"]}
                 </Text>
               </View>
             </View>
           </View>
         )}
 
-        <Text className="text-lg font-pbold mb-2">Gói dịch vụ</Text>
+        <Text className="text-lg font-pbold mb-2 mt-2 text-teal-500">
+          Gói dịch vụ đã chọn
+        </Text>
         {packageData.services.map((service: Service, index: number) => (
-          <View key={index} className="p-4">
-            <View className="mb-4 pb-4 border-b border-gray-200">
+          <View key={index} className="p-4 pt-2">
+            <View className="pb-4 border-b border-gray-200">
               <View className="gap-2">
-                <Text className="text-base font-pbold">{service.name}</Text>
+                <Text className="text-base font-pbold">
+                  {index + 1}. {service.name}
+                </Text>
                 <View className="flex-row items-center gap-2">
                   <Text className="text-base text-gray-500 font-psemibold">
                     {convertDuration(service.duration)}
@@ -304,78 +380,107 @@ const ConfirmScreen = () => {
                     -
                   </Text>
                   <Text className="text-base font-pbold">
-                    {(service.cost * service.quantity).toLocaleString()} VND
+                    {service.totalCost.toLocaleString()} VND
                   </Text>
                 </View>
-                <Text className="text-sm text-gray-500 font-psemibold">
-                  Ghi chú: {service.note}
+                {service.additionalCost > 0 && (
+                  <Text className="text-sm text-red-500 font-pmedium">
+                    (Chi phí cơ bản: {service.baseCost.toLocaleString()} VND +{" "}
+                    {service.additionalCost.toLocaleString()} VND)
+                  </Text>
+                )}
+                <Text className="text-base font-psemibold text-gray-500">
+                  Số lượng: {service.totalUnit}
                 </Text>
+                <View className="flex-row flex-wrap">
+                  <Text className="text-base font-pbold mb-2 mr-2">
+                    Ghi chú:
+                  </Text>
+                  <Text
+                    className="text-base text-gray-600 font-pmedium flex-1"
+                    style={{ flexWrap: "wrap" }}
+                  >
+                    {service.note.length > 0 ? service.note : "Không ghi chú"}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
         ))}
-
-        <View className="pb-4 mb-4">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-base font-pbold">Tổng tiền</Text>
-            <Text className="text-base font-pbold">
-              {totalPrice.toLocaleString()} VND
+        <Text className="text-lg font-pbold mt-2 text-teal-500">Xác nhận</Text>
+        <View className="p-4 bg-white rounded-lg shadow">
+          <View className="flex-row justify-between">
+            <Text className="text-gray-600 font-pbold">Tổng thời gian:</Text>
+            <Text className="text-red-600 font-pbold">
+              {totalDuration} phút
             </Text>
           </View>
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-base font-pbold">Tổng thời gian:</Text>
-            <Text className="text-base font-pbold">
-              {packageData.totalDuration} phút
+          <View className="flex-row justify-between mt-1">
+            <Text className="text-gray-600 font-pbold">
+              Tổng giá {numberOfDays > 1 ? "1 ngày" : ""}:
             </Text>
+            <View className="flex-col items-end">
+              {hasDiscount && (
+                <Text className="text-gray-500 font-pmedium line-through">
+                  {totalPricePerDay.toLocaleString()} VND
+                </Text>
+              )}
+              <Text className="text-red-600 font-pbold">
+                {Math.round(discountedPricePerDay).toLocaleString()} VND
+              </Text>
+            </View>
           </View>
-        </View>
-
-        {/* Phương thức thanh toán */}
-        <View className="mb-6">
-          <Text className="text-lg font-pbold mb-2">
-            Phương thức thanh toán
-          </Text>
-          <View className="flex-row items-center">
-            <MaterialIcons
-              name="account-balance-wallet"
-              size={20}
-              color="#6b7280"
-              className="mr-5 bg-white border border-gray-300 rounded-xl p-3 px-6"
-            />
-            <Text className="text-base font-pmedium text-gray-400">
-              Thanh toán qua ví
-            </Text>
-          </View>
+          {numberOfDays > 1 && (
+            <View className="flex-row justify-between mt-1">
+              <Text className="text-gray-600 font-pbold">
+                Tổng giá ({numberOfDays} ngày):
+              </Text>
+              <View className="flex-col items-end">
+                {hasDiscount && (
+                  <Text className="text-gray-500 font-pmedium line-through">
+                    {totalPriceWithDays.toLocaleString()} VND
+                  </Text>
+                )}
+                <Text className="text-red-600 font-pbold">
+                  {Math.round(discountedPriceWithDays).toLocaleString()} VND
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 bg-white p-4 border-t border-gray-300">
         <View className="flex-row justify-between items-center w-full">
           <View>
-            <Text className="text-lg font-pbold text-gray-800">
-              {totalPrice.toLocaleString()} VND
-            </Text>
+            <View className="flex-col items-start">
+              <Text className="text-lg font-pbold text-red-500">
+                {Math.round(discountedPriceWithDays).toLocaleString()} VND
+              </Text>
+            </View>
             <Text className="text-sm text-gray-500 font-pmedium">
               {totalServices} dịch vụ • {formattedDuration}
             </Text>
           </View>
-          <TouchableOpacity
-            className="bg-[#64CbDB] py-3 px-6 rounded-lg"
-            onPress={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text className="text-white font-pbold">Xác nhận</Text>
-            )}
-          </TouchableOpacity>
+          {!isModalVisible && (
+            <TouchableOpacity
+              className="bg-[#64CbDB] py-3 px-6 rounded-lg"
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text className="text-white font-pbold">Thanh toán</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
       <Modal visible={isModalVisible} transparent={true} animationType="fade">
         <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white p-6 rounded-lg w-96">
+          <View className="bg-white p-6 rounded-lg w-[90%]">
             <Image
               source={{
                 uri: isSuccess
@@ -392,14 +497,23 @@ const ConfirmScreen = () => {
                 ? "Dịch vụ đã được xác nhận thành công."
                 : "Đã có lỗi xảy ra khi xác nhận dịch vụ."}
             </Text>
-            <TouchableOpacity
-              className="bg-[#64CbDB] py-3 px-6 rounded-lg"
-              onPress={handleGoHome}
-            >
-              <Text className="text-white font-pbold text-center">
-                Về trang chủ
-              </Text>
-            </TouchableOpacity>
+            {isSuccess ? (
+              <TouchableOpacity
+                className="bg-[#64CbDB] py-3 px-6 rounded-lg"
+                onPress={handleGoHome}
+              >
+                <Text className="text-white font-pbold text-center">
+                  Về trang chủ
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                className="bg-[#64CbDB] py-3 px-6 rounded-lg"
+                onPress={handleCloseModal}
+              >
+                <Text className="text-white font-pbold text-center">Đóng</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>
