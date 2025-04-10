@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/welcome.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.danhths.curanest_mb_user"
+      "package": "com.danhths.curanest_mb_user",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -28,12 +29,13 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/logo-app.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

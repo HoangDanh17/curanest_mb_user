@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Platform } from "react-native";
+import { Platform, StatusBar } from "react-native";
 
 const RootLayout = () => {
   return (

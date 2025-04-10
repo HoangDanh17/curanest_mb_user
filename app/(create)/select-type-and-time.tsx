@@ -1,43 +1,62 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, Pressable } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import HeaderBack from "@/components/HeaderBack";
 import NurseCard from "@/components/NurseCard";
 
 const ServiceTypeScreen = () => {
+  const {
+    id,
+    day,
+    totalDuration,
+    serviceId,
+    packageInfo,
+    timeInter,
+    patient,
+    discount,
+  } = useLocalSearchParams();
   const [selectedOption, setSelectedOption] = useState<
     "system" | "user" | null
   >(null);
   const router = useRouter();
 
   useEffect(() => {
-    const today = new Date();
-    setSelectedOption(null); // Đặt lại trạng thái khi vào màn hình
+    setSelectedOption(null);
   }, []);
 
-  // Reset trạng thái khi người dùng quay lại
   useFocusEffect(
     React.useCallback(() => {
       setSelectedOption(null);
     }, [])
   );
 
-  // Xử lý khi chọn "System" -> Chuyển thẳng sang màn hình xác nhận
   const handleSystemSelect = () => {
     setSelectedOption("system");
-    router.push("/(create)/confirm-appointment");
+    router.push({
+      pathname: "/(create)/date-available",
+      params: {
+        id: id,
+        day: day,
+        totalDuration: totalDuration,
+        packageInfo: packageInfo,
+        timeInter: timeInter,
+        patient: patient,
+        discount: discount,
+      },
+    });
   };
 
-  // Xử lý khi chọn "User" -> Hiển thị giao diện chọn điều dưỡng
   const handleUserSelect = () => {
     setSelectedOption("user");
   };
 
   return (
     <View className="flex-1 p-4 bg-white">
-      <HeaderBack />
+      <View className=" mt-4">
+        <HeaderBack />
+      </View>
       {selectedOption === null ? (
         <Animated.View
           entering={FadeIn.duration(300)}
@@ -69,7 +88,15 @@ const ServiceTypeScreen = () => {
           </View>
         </Animated.View>
       ) : selectedOption === "user" ? (
-        <NurseCard />
+        <NurseCard
+          id={String(serviceId)}
+          day={Number(day)}
+          totalDuration={Number(totalDuration)}
+          packageInfo={String(packageInfo)}
+          timeInter={Number(timeInter)}
+          patient={String(patient)}
+          discount={Number(discount)}
+        />
       ) : null}
     </View>
   );

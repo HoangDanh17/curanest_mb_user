@@ -130,7 +130,7 @@ const HomeScreen = () => {
         <View className="flex flex-row items-center justify-between mx-4 mt-4">
           <Text className=" text-lg font-pbold">Hồ sơ bệnh nhân</Text>
           <TouchableOpacity
-            className="bg-green-600 p-1 px-6 rounded-2xl"
+            className="bg-indigo-400 py-2 px-6 rounded-2xl"
             onPress={() => router.push("/create-patient")}
           >
             <Text className="text-white font-psemibold">Tạo hồ sơ</Text>
@@ -151,8 +151,8 @@ const HomeScreen = () => {
                   shadowRadius: 4,
                 }}
               >
-                <View className="bg-indigo-200 p-4 border-b border-gray-100">
-                  <Text className="text-xl font-pbold text-blue-800">
+                <View className="bg-[#6fe8ea] p-4 border-b border-gray-100">
+                  <Text className="text-xl font-pbold text-white">
                     {item["full-name"]}
                   </Text>
                 </View>
@@ -189,15 +189,22 @@ const HomeScreen = () => {
 
                   <View className="flex flex-row justify-between">
                     <TouchableOpacity
-                      className="bg-blue-500 py-2 px-2 rounded-xl flex-1 mr-2"
-                      onPress={() => router.push("/choose-service")}
+                      className="bg-[#6fe8ea] py-2 px-2 rounded-xl flex-1 mr-2"
+                      onPress={() =>
+                        router.push({
+                          pathname: "/choose-service",
+                          params: {
+                            patient: JSON.stringify(item),
+                          },
+                        })
+                      }
                     >
                       <Text className="text-white font-psemibold text-center">
                         Đặt lịch
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className="bg-orange-400 py-2 px-2 rounded-xl flex-1 mr-2"
+                      className="bg-orange-300 py-2 px-2 rounded-xl flex-1 mr-2"
                       onPress={() =>
                         router.push({
                           pathname: "/update-patient/[id]",
