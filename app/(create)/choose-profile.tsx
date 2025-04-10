@@ -3,7 +3,7 @@ import { useSearch } from "@/app/provider";
 import HeaderBack from "@/components/HeaderBack";
 import ImageUrl from "@/data/ImageUrl";
 import { Patient } from "@/types/patient";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   View,
@@ -23,6 +23,7 @@ import Animated, {
 
 const ChooseProfilePatientScreen = () => {
   const { setIsSearch } = useSearch();
+  const { id, nurseInfo } = useLocalSearchParams();
   const [patientList, setPatientList] = useState<Patient[]>([]);
   const router = useRouter();
 
@@ -41,12 +42,18 @@ const ChooseProfilePatientScreen = () => {
     }, [])
   );
 
-  const handleClick = () => {
-    router.push(`/(create)/choose-pack`);
+  const handleClick = (item: Patient) => {
+    router.push({
+      pathname: "/(create)/choose-pack",
+      params: {
+        id: String(id),
+        nurseInfo: nurseInfo,
+        patient: JSON.stringify(item),
+      },
+    });
     setIsSearch(true);
   };
 
-  // Hiệu ứng khi nhấn
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -69,7 +76,7 @@ const ChooseProfilePatientScreen = () => {
 
   const renderItem = ({ item }: { item: Patient }) => (
     <TouchableWithoutFeedback
-      onPress={handleClick}
+      onPress={() => handleClick(item)}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
@@ -125,33 +132,24 @@ const ChooseProfilePatientScreen = () => {
 
   return (
     <SafeAreaView className="bg-white flex-1">
-      {/* Background Image */}
-      <ImageBackground
-        source={{ uri: ImageUrl.imageCreate }}
-        className="flex-1 px-4"
-        resizeMode="cover"
-      >
-        {/* Header */}
-        <View className="mt-2">
-          <HeaderBack />
-        </View>
+      <View className="mt-4 ml-2">
+        <HeaderBack />
+      </View>
 
-        {/* FlatList */}
-        <FlatList
-          data={patientList}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={{
-            paddingBottom: 20,
-            paddingTop: 10,
-          }}
-          ListEmptyComponent={() => (
-            <Text className="text-center text-gray-400 mt-8">
-              Không có bệnh nhân nào
-            </Text>
-          )}
-        />
-      </ImageBackground>
+      <FlatList
+        data={patientList}
+        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        contentContainerStyle={{
+          paddingBottom: 20,
+          paddingTop: 10,
+        }}
+        ListEmptyComponent={() => (
+          <Text className="text-center text-gray-400 mt-8">
+            Không có bệnh nhân nào
+          </Text>
+        )}
+      />
     </SafeAreaView>
   );
 };

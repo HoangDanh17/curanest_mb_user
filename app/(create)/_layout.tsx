@@ -11,11 +11,7 @@ const CreateLayout = () => {
       }}
     >
       <Stack.Screen name="choose-pack" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="select-type-and-time"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen name="time-appointment" options={{ headerShown: false }} />
+      <Stack.Screen name="select-type-and-time" options={{ headerShown: false }} />
       <Stack.Screen
         name="confirm-appointment"
         options={{ headerShown: false }}

@@ -106,8 +106,11 @@ const ListNurseScreen = () => {
           >
             <NursingCard
               data={searchResult}
-              handlePress={(id: string) => {
-                router.push(`/detail-nurse/${id}`);
+              handlePress={(idNurse: string) => {
+                router.push({
+                  pathname: "/detail-nurse/[id]",
+                  params: { idNurse: idNurse, id: String(id) },
+                });
               }}
             />
           </Animated.View>

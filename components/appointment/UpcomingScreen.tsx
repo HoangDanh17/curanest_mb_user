@@ -1,50 +1,36 @@
 import React from "react";
 import { View, FlatList } from "react-native";
 
-import { AppointmentCardProps } from "@/types/appointment";
+import {
+  AppointmentListNurse,
+} from "@/types/appointment";
 import AppointmentCard from "@/components/AppointmentCard";
 
-const appointments: AppointmentCardProps[] = [
-  {
-    id: "1",
-    avatar:
-      "https://www.careerstaff.com/wp-content/uploads/2023/07/hospital-setting-nurse-career.png",
-    nurseName: "Dr. Cynthia Chisom",
-    time: "4:00 PM - 4:45 PM",
-    date: new Date("2024-05-10"),
-    services: ["Khám tổng quát", "Tiêm vaccine"],
-    status: "accepted",
-  },
-  {
-    id: "2",
-    avatar:
-      "https://www.careerstaff.com/wp-content/uploads/2023/07/hospital-setting-nurse-career.png",
-    nurseName: "Dr. Cynthia Chisom",
-    time: "4:00 PM - 4:45 PM",
-    date: new Date("2024-05-10"),
-    services: ["Khám tổng quát", "Tiêm vaccine"],
-    status: "pending",
-  },
-];
+export interface AppointmentProps {
+  appointment: AppointmentListNurse[];
+}
 
-const UpcomingScreen = () => (
-  <View style={{ flex: 1, backgroundColor: "#f5f5f5", marginTop: 8 }}>
-    <FlatList
-      data={appointments}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <AppointmentCard
-          id={item.id}
-          avatar={item.avatar}
-          nurseName={item.nurseName}
-          time={item.time}
-          date={item.date}
-          services={item.services}
-          status={item.status}
-        />
-      )}
-    />
-  </View>
-);
+const UpcomingScreen = ({ appointment }: AppointmentProps) => {
+  return (
+    <View style={{ flex: 1, backgroundColor: "#f5f5f5", marginTop: 8 }}>
+      <FlatList
+        data={appointment}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <AppointmentCard
+            id={item.id}
+            avatar={item.nurse?.["nurse-picture"]}
+            nurseName={item.nurse?.["nurse-name"]}
+            packageId={item["cuspackage-id"]}
+            nurseId={item["nursing-id"]}
+            patientId={item["patient-id"]}
+            time={item["est-date"]}
+            status={item.status}
+          />
+        )}
+      />
+    </View>
+  );
+};
 
 export default UpcomingScreen;

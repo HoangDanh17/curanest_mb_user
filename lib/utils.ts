@@ -9,3 +9,16 @@ export const calculateAge = (dob: string): number => {
     return 0;
   }
 };
+
+export const safeParse = (data: any, name: string) => {
+  try {
+    if (typeof data === "string") {
+      return JSON.parse(data);
+    }
+    console.warn(`${name} không phải chuỗi, trả về nguyên bản:`, data);
+    return data || null;
+  } catch (error) {
+    console.error(`Lỗi parse ${name}:`, error);
+    return null;
+  }
+};
