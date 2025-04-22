@@ -9,6 +9,7 @@ const InProgressScreen = ({ appointment }: AppointmentProps) => {
       <Animated.FlatList
         data={appointment}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={false}
         renderItem={({ item, index }) => (
           <Animated.View
             entering={FadeInUp.delay(index * 100).springify()}
@@ -23,6 +24,7 @@ const InProgressScreen = ({ appointment }: AppointmentProps) => {
               packageId={item["cuspackage-id"]}
               nurseId={item["nursing-id"]}
               patientId={item["patient-id"]}
+              duration={item["total-est-duration"]}
             />
           </Animated.View>
         )}

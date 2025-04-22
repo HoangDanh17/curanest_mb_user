@@ -163,6 +163,7 @@ const NursingCard = ({
           </Text>
         </View>
       )}
+      removeClippedSubviews={false}
     />
   );
 };

@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import ButtonMenu from "@/components/ButtonMenu";
 import { MaterialIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import { Patient, PatientRes } from "@/types/patient";
+import { Patient } from "@/types/patient";
 import patientApiRequest from "@/app/api/patientApi";
 import { calculateAge } from "@/lib/utils";
 
@@ -48,9 +48,7 @@ const HomeScreen = () => {
     try {
       const response = await patientApiRequest.getAllPatient();
       setPatientList(response.payload.data);
-    } catch (error) {
-      console.error("Error fetching patient list:", error);
-    }
+    } catch (error) {}
   }
 
   useFocusEffect(
@@ -139,6 +137,7 @@ const HomeScreen = () => {
         <View className="mt-4">
           <FlatList
             data={patientList}
+            removeClippedSubviews={false}
             renderItem={({ item }) => (
               <View
                 className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-4 mr-6"

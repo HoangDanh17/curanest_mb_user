@@ -16,9 +16,6 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { LoginBodyType } from "@/types/login";
 import authApiRequest from "@/app/api/authApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
-import { Notification, NotificationResponse } from "expo-notifications";
 
 interface FormErrors {
   "phone-number": string;
@@ -115,10 +112,9 @@ const LoginScreen: React.FC = () => {
         "userInfo",
         JSON.stringify(response.payload.data["account-info"])
       );
-      await AsyncStorage.setItem(
-        "accessToken",
-        response.payload.data.token["access_token"]
-      );
+
+      const token = response.payload.data.token["access_token"];
+      await AsyncStorage.setItem("accessToken", token);
       router.push("/(tabs)/home");
     } catch (error: any) {
       if (error.payload.error.reason_field) {

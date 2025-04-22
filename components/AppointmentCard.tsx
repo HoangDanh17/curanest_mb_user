@@ -7,23 +7,32 @@ import {
   TouchableOpacity,
 } from "react-native";
 import IconTime from "@/assets/icon/clock-arrow-up.png";
-import IconCalendar from "@/assets/icon/calendar-range.png";
-import { format } from "date-fns";
+import { MaterialIcons } from "@expo/vector-icons"; // Using MaterialIcons from expo/vector-icons
+import { addMinutes, format } from "date-fns";
 import { AppointmentCardProps, Status, StatusStyle } from "@/types/appointment";
 import { router } from "expo-router";
 
-const STATUS_STYLES: Partial<Record<Status, StatusStyle>> = {
+const COLOR_MAP: Record<string, string> = {
+  "text-amber-600": "#d97706",
+  "text-indigo-600": "#4f46e5",
+  "text-emerald-600": "#059669",
+  "text-sky-600": "#0284c7",
+  "text-violet-600": "#7c3aed",
+  "text-gray-600": "#4b5563",
+};
+
+const STATUS_STYLES: Record<Status, StatusStyle> = {
   waiting: {
     backgroundColor: "bg-amber-50",
     textColor: "text-amber-600",
     borderColor: "border-2 border-amber-500",
     label: "Chờ xác nhận",
   },
-  confirmed: {
+  upcoming: {
     backgroundColor: "bg-indigo-50",
     textColor: "text-indigo-600",
     borderColor: "border-2 border-indigo-500",
-    label: "Đã xác nhận",
+    label: "Sắp tới",
   },
   success: {
     backgroundColor: "bg-emerald-50",
@@ -31,11 +40,11 @@ const STATUS_STYLES: Partial<Record<Status, StatusStyle>> = {
     borderColor: "border-2 border-emerald-500",
     label: "Hoàn thành",
   },
-  refused: {
-    backgroundColor: "bg-red-50",
-    textColor: "text-red-600",
-    borderColor: "border-2 border-red-500",
-    label: "Từ chối chuyển",
+  confirmed: {
+    backgroundColor: "bg-sky-50",
+    textColor: "text-sky-600",
+    borderColor: "border-2 border-sky-500",
+    label: "Đã xác nhận",
   },
   changed: {
     backgroundColor: "bg-violet-50",
@@ -61,6 +70,7 @@ const AppointmentCard = ({
   packageId,
   nurseId,
   patientId,
+  duration,
 }: AppointmentCardProps) => {
   const statusStyle = STATUS_STYLES[status] || DEFAULT_STATUS_STYLE;
   const formattedDate = format(time, "dd/MM/yyyy");
@@ -68,7 +78,7 @@ const AppointmentCard = ({
 
   const handleClick = () => {
     router.push({
-      pathname: "/detail-appointment/[id]",
+      pathname: "/detail-appointment",
       params: {
         id: String(id),
         packageId: packageId,
@@ -96,17 +106,42 @@ const AppointmentCard = ({
 
   const displayNurseName = avatar ? nurseName : "Đang tìm kiếm điều dưỡng...";
 
+  const calculateEndTime = () => {
+    try {
+      if (!duration) return "Không xác định";
+      const endTime = addMinutes(time, duration);
+      return format(endTime, "HH:mm a");
+    } catch (error) {
+      console.error("Error calculating end time:", error);
+      return "Không xác định";
+    }
+  };
+
   return (
     <TouchableOpacity
       onPress={handleClick}
       className={`bg-white rounded-xl p-4 mx-4 my-2 shadow-sm ${statusStyle.borderColor}`}
     >
       <View
-        className={`self-start ${statusStyle.backgroundColor} px-3 py-1 rounded-full mb-3`}
+        className={`self-start ${statusStyle.backgroundColor} px-3 py-1 rounded-full mb-3 flex-row items-center`}
       >
-        <Text className={`text-xs ${statusStyle.textColor} font-pbold`}>
-          {statusStyle.label}
+        <Text className={`text-xs ${statusStyle.textColor} font-pbold mr-2`}>
+          {statusStyle.label} -
         </Text>
+        <View className="flex-row items-center">
+          <MaterialIcons
+            name="calendar-today"
+            size={16}
+            color={
+              (statusStyle.textColor && COLOR_MAP[statusStyle.textColor]) ||
+              "#4b5563"
+            }
+            style={{ marginRight: 6 }}
+          />
+          <Text className={`text-sm font-psemibold ${statusStyle.textColor}`}>
+            {formattedDate}
+          </Text>
+        </View>
       </View>
 
       <View className="flex flex-row items-center mb-3">
@@ -118,10 +153,11 @@ const AppointmentCard = ({
 
           <View className="flex flex-row items-center mt-2">
             <Image source={IconTime} className="w-4 h-4 mr-1" />
-            <Text className="text-sm text-gray-500 ml-1">{formattedTime}</Text>
+            <Text className="text-sm text-gray-500 ml-1 font-pmedium">{formattedTime}</Text>
             <View className="w-1 h-1 rounded-full bg-gray-300 mx-2" />
-            <Image source={IconCalendar} className="w-4 h-4 mr-1" />
-            <Text className="text-sm text-gray-500 ml-1">{formattedDate}</Text>
+            <Text className="text-sm text-gray-500 ml-1 font-pmedium">
+              {calculateEndTime()}
+            </Text>
           </View>
         </View>
       </View>

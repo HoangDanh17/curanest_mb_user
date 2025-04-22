@@ -6,7 +6,6 @@ import {
   RegisterResType,
   UpdateUserDataType,
   UserDataRes,
-  UserDataType,
 } from "@/types/login";
 import { CreatePatientRes } from "@/types/patient";
 

@@ -51,7 +51,7 @@ interface FormErrors {
   medicalCondition?: string;
 }
 
-const genderOptions = [
+export const genderOptions = [
   { label: "Nam", value: true },
   { label: "Nữ", value: false },
 ];
@@ -228,7 +228,7 @@ const CreatePatientScreen = () => {
       className="flex-1"
     >
       <ScrollView className="flex-1">
-        <View className="p-4">
+        <View className="p-4 mt-8">
           <View className="bg-white p-4 rounded-xl">
           <HeaderBack />
             <CustomInput

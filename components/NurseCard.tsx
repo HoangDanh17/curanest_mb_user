@@ -129,6 +129,7 @@ const NurseCard = ({
       <FlatList
         data={listNurseData}
         keyExtractor={(item) => item["nurse-id"]}
+        removeClippedSubviews={false}
         ListHeaderComponent={() => (
           <Text className="my-2 font-pbold text-3xl mb-4">Chọn điều dưỡng</Text>
         )}

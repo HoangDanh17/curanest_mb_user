@@ -108,7 +108,7 @@ const ListNurseScreen = () => {
               data={searchResult}
               handlePress={(idNurse: string) => {
                 router.push({
-                  pathname: "/detail-nurse/[id]",
+                  pathname: "/detail-nurse",
                   params: { idNurse: idNurse, id: String(id) },
                 });
               }}

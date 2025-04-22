@@ -59,44 +59,23 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   );
 };
 
-const WalletBalance = () => {
-  return (
-    <View className="mx-4 mb-6">
-      <LinearGradient
-        colors={["#93c5fd", "#fde047"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        className="rounded-3xl p-4 overflow-hidden"
-        style={{
-          borderRadius: 24,
-        }}
-      >
-        <Text className="text-white text-lg font-pmedium mb-1">Số dư ví</Text>
-        <Text className="text-white text-2xl font-pbold mb-3">0 đ</Text>
-        <TouchableOpacity>
-          <View className="bg-white/20 self-start px-4 py-2 rounded-full">
-            <Text className="text-white font-pmedium">Xem chi tiết</Text>
-          </View>
-        </TouchableOpacity>
-      </LinearGradient>
-    </View>
-  );
-};
-
 const ProfileScreen = () => {
   const [data, setData] = useState<UserData | undefined>();
 
   useEffect(() => {
-    const fetchData = async () => {
-      const savedToken = await AsyncStorage.getItem("userInfo");
-      if (savedToken) {
-        const parsedData: UserData = JSON.parse(savedToken);
-        setData(parsedData);
-      } else {
-        router.push("/(auth)/welcome");
+    const fetchUserInfo = async () => {
+      try {
+        const value = await AsyncStorage.getItem("userInfo");
+        if (value) {
+          const parsedValue: UserData = JSON.parse(value);
+          setData(parsedValue);
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error);
       }
     };
-    fetchData();
+
+    fetchUserInfo();
   }, []);
 
   const handleLogout = async () => {
@@ -112,8 +91,9 @@ const ProfileScreen = () => {
           text: "Đồng ý",
           onPress: async () => {
             try {
-              await AsyncStorage.clear();
-              router.replace("/(auth)/login");
+              await AsyncStorage.removeItem("accessToken");
+              await AsyncStorage.removeItem("userInfo");
+              router.navigate("/(auth)/login");
             } catch (error) {
               console.error("Đăng xuất thất bại", error);
               Alert.alert("Lỗi", "Không thể đăng xuất. Vui lòng thử lại.");
@@ -141,10 +121,6 @@ const ProfileScreen = () => {
                 avatar={undefined}
               />
 
-              <View className="top-[-30]">
-                <WalletBalance />
-              </View>
-
               <View className="mx-4 flex flex-col gap-4 pb-8">
                 <ProfileButton
                   icon="edit"
@@ -153,12 +129,12 @@ const ProfileScreen = () => {
                 />
                 <ProfileButton
                   icon="calendar-today"
-                  text="Lịch sử cuộc hẹn"
+                  text="Lịch sử đặt lịch"
                   onPress={() => router.push("/(profile)/appointment-history")}
                 />
                 <ProfileButton
                   icon="history"
-                  text="Lịch sử nạp tiền"
+                  text="Lịch sử thanh toán"
                   onPress={() => router.push("/(profile)/payment-history")}
                 />
                 <ProfileButton

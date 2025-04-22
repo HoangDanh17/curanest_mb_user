@@ -1,8 +1,8 @@
 import HeaderBack from "@/components/HeaderBack";
 import React from "react";
 import { View, Text, FlatList, TouchableOpacity } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
 import { format } from "date-fns";
+import { router, useLocalSearchParams } from "expo-router";
 
 interface Report {
   id: string;
@@ -71,7 +71,6 @@ const ReportAppointmentItem: React.FC<ReportAppointmentItemProps> = ({
 
 const ReportAppointment: React.FC = () => {
   const { listTask } = useLocalSearchParams();
-
   const parsedlistTask: any[] = listTask ? JSON.parse(String(listTask)) : [];
 
   const reports: Report[] = parsedlistTask.map((task) => ({
@@ -82,35 +81,34 @@ const ReportAppointment: React.FC = () => {
     customerNote: task["client-note"] || "Chưa có ghi chú",
     time: task["est-duration"],
     numberOfTimes: task["total-unit"],
-    status: task.status,
+    status: task.status as "done" | "not_done",
   }));
 
   return (
-    <View className="flex-1 bg-gray-100">
-      <FlatList
-        data={reports}
-        ListHeaderComponent={
-          <View className="m-4 ml-0 mt-2">
-            <HeaderBack />
-          </View>
-        }
-        ListFooterComponent={
-          <View className="flex-row justify-end mb-6">
-            <TouchableOpacity
-              className="px-6 py-3 bg-[#64CBDD] rounded-lg"
-              onPress={() => router.back()}
-            >
-              <Text className="text-white font-pmedium">Quay lại</Text>
-            </TouchableOpacity>
-          </View>
-        }
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <ReportAppointmentItem report={item} index={index} />
-        )}
-        contentContainerStyle={{ padding: 16 }}
-      />
-    </View>
+    <FlatList
+      data={reports}
+      removeClippedSubviews={false}
+      ListHeaderComponent={
+        <View className="m-4 ml-0 mt-8">
+          <HeaderBack />
+        </View>
+      }
+      ListFooterComponent={
+        <View className="flex-row justify-end mb-6">
+          <TouchableOpacity
+            className="px-6 py-3 bg-[#64CBDD] rounded-lg"
+            onPress={() => router.back()}
+          >
+            <Text className="text-white font-pmedium">Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      }
+      keyExtractor={(item) => item.id}
+      renderItem={({ item, index }) => (
+        <ReportAppointmentItem report={item} index={index} />
+      )}
+      contentContainerStyle={{ padding: 16 }}
+    />
   );
 };
 

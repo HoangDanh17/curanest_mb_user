@@ -89,10 +89,10 @@ export default function Schedule() {
     (appt) =>
       appt.status === "waiting" ||
       appt.status === "changed" ||
-      appt.status === "refused"
+      appt.status === "confirmed"
   );
   const inProgressAppointments = appointmentsWithNurse.filter(
-    (appt) => appt.status === "confirmed"
+    (appt) => appt.status === "upcoming"
   );
   const completedAppointments = appointmentsWithNurse.filter(
     (appt) => appt.status === "success"
@@ -124,7 +124,6 @@ export default function Schedule() {
                 }`}
                 onPress={() => {
                   setSelectedProfile(patient.id);
-                  console.log(`Selected: ${patient.id}`);
                 }}
               >
                 <Image
@@ -163,7 +162,7 @@ export default function Schedule() {
           <Tab.Screen
             name="Upcoming"
             options={{
-              title: "Đang chờ",
+              title: `Đang chờ (${upcomingAppointments.length})`,
               tabBarIndicatorStyle: { backgroundColor: "#FFAD60" },
               tabBarActiveTintColor: "#FFAD60",
             }}
@@ -173,7 +172,7 @@ export default function Schedule() {
           <Tab.Screen
             name="InProgress"
             options={{
-              title: "Đã xác nhận",
+              title: `Sắp tới (${inProgressAppointments.length})`,
               tabBarIndicatorStyle: { backgroundColor: "#4B70F5" },
             }}
           >
@@ -182,7 +181,7 @@ export default function Schedule() {
           <Tab.Screen
             name="Completed"
             options={{
-              title: "Hoàn thành",
+              title: `Hoàn thành (${completedAppointments.length})`,
               tabBarIndicatorStyle: { backgroundColor: "#00FF9C" },
               tabBarActiveTintColor: "#00FF9C",
             }}

@@ -71,8 +71,7 @@ const request = async <Response>(
     baseHeaders["Authorization"] = `Bearer ${token}`;
   }
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-  const baseUrl =
-    options?.baseUrl === undefined ? apiUrl : options.baseUrl;
+  const baseUrl = options?.baseUrl === undefined ? apiUrl : options.baseUrl;
 
   const apiPrefix = options?.apiPrefix ? `/${options.apiPrefix}` : "";
   const fullUrl = `${baseUrl}${apiPrefix}/api/v1/${endpoint}`.replace(
@@ -105,7 +104,7 @@ const request = async <Response>(
         "Phiên đăng nhập hết hạn",
         "Vui lòng đăng nhập lại để tiếp tục sử dụng."
       );
-      router.replace("/(auth)/login");
+      router.navigate("/(auth)/welcome");
       throw new HttpError({
         status: 401,
         payload: await res.json(),
