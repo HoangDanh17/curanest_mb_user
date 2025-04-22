@@ -4,54 +4,99 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
-  Pressable,
   ActivityIndicator,
 } from "react-native";
-import React, { useCallback, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderBack from "@/components/HeaderBack";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 import { AppointmentDetail } from "@/types/appointment";
 import { DetailNurse } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
+import invoiceApiRequest from "@/app/api/invoiceApi";
 import { addMinutes, format } from "date-fns";
+import { WebView } from "react-native-webview";
+import { URL } from "react-native-url-polyfill";
 
 const DetailAppointmentScreen = () => {
-  const { id, packageId, nurseId, patientId, date, status } =
-    useLocalSearchParams();
+  const { id, packageId, nurseId, date, status } = useLocalSearchParams();
   const [appointments, setAppointments] = useState<AppointmentDetail>();
   const [detailNurseData, setDetailNurseData] = useState<DetailNurse>();
+  const [paymentUrl, setPaymentUrl] = useState("");
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
 
   async function fetchAppointmentDetail() {
     try {
+      if (!packageId || !date) return; // Silently skip if missing params
       const response = await appointmentApiRequest.getAppointmentDetail(
         String(packageId),
         String(date)
       );
-      setAppointments(response.payload.data);
-    } catch (error) {
-      console.error("Error fetching patient list:", error);
+      if (response.payload?.data) {
+        setAppointments(response.payload.data);
+      }
+    } catch (error: any) {
+      console.error("Error fetching appointment detail:", error);
     }
   }
 
   async function fetchNurseInfo() {
     try {
-      const response = await nurseApiRequest.getDetailNurse(nurseId);
-      setDetailNurseData(response.payload.data);
-    } catch (error) {
-      console.error("Error fetching services:", error);
+      if (!nurseId) return; // Silently skip if no nurseId
+      const response = await nurseApiRequest.getDetailNurse(String(nurseId));
+      if (response.payload?.data) {
+        setDetailNurseData(response.payload.data);
+      }
+    } catch (error: any) {
+      console.error("Error fetching nurse info:", error);
     }
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchAppointmentDetail();
-      if (nurseId) {
-        fetchNurseInfo();
+  const handlePayment = async () => {
+    setIsLoadingPayment(true);
+    try {
+      if (!packageId) return;
+      const response = await invoiceApiRequest.getInvoice(String(packageId));
+      const invoiceData = response.payload.data;
+
+      if (invoiceData && invoiceData.length > 0) {
+        const payosUrl = invoiceData[0]["payos-url"];
+        if (payosUrl) {
+          setPaymentUrl(payosUrl);
+        }
       }
-    }, [])
-  );
+    } catch (error: any) {
+      console.error("Error fetching invoice:", error);
+    } finally {
+      setIsLoadingPayment(false);
+    }
+  };
+
+  const handleNavigationChange = (navState: any) => {
+    const { url } = navState;
+    if (
+      url.includes("https://curanest.com.vn/payment-result-success") ||
+      url.includes("https://curanest.com.vn/payment-result-fail")
+    ) {
+      const parsedUrl = new URL(url);
+      const responseCode = parsedUrl.searchParams.get("code");
+
+      if (responseCode === "00") {
+        setPaymentUrl("");
+        router.replace("/(tabs)/schedule");
+      } else {
+        setPaymentUrl("");
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointmentDetail();
+    if (nurseId) {
+      fetchNurseInfo();
+    }
+  }, []);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -88,20 +133,63 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+  let formattedDate = "Không xác định";
+  let formattedTime = "Không xác định";
+  if (date && typeof date === "string") {
+    try {
+      const parsedDate = new Date(date);
+      if (!isNaN(parsedDate.getTime())) {
+        formattedDate = format(parsedDate, "dd/MM/yyyy");
+        formattedTime = format(parsedDate, "hh:mm a");
+      }
+    } catch (error) {
+      console.error("Error formatting date:", error);
+    }
+  }
+
   const statusStyle = getStatusStyle(String(status));
   const certificates = detailNurseData?.certificate
     ? detailNurseData.certificate.split(" - ").map((cert) => `• ${cert}`)
     : [];
-  const formattedDate = format(new Date(String(date)), "dd/MM/yyyy");
-  const formattedTime = format(new Date(String(date)), "hh:mm a");
+
   const totalDuration = appointments?.tasks
-    ? appointments.tasks.reduce((sum, task) => sum + task["est-duration"], 0)
+    ? appointments.tasks.reduce(
+        (sum, task) => sum + (task["est-duration"] || 0),
+        0
+      )
     : 0;
 
   const calculateEndTime = () => {
-    const endTime = addMinutes(String(date), totalDuration);
-    return format(endTime, "HH:mm a");
+    if (!date || typeof date !== "string") return "Không xác định";
+    try {
+      const endTime = addMinutes(new Date(date), totalDuration);
+      return format(endTime, "HH:mm a");
+    } catch (error) {
+      console.error("Error calculating end time:", error);
+      return "Không xác định";
+    }
   };
+
+  const handleViewReport = () => {
+    if (!id || !appointments?.tasks || appointments.tasks.length === 0) return;
+    router.push({
+      pathname: "/report-appointment",
+      params: {
+        id: String(id),
+        listTask: JSON.stringify(appointments.tasks),
+      },
+    });
+  };
+
+  if (paymentUrl) {
+    return (
+      <WebView
+        source={{ uri: paymentUrl }}
+        onNavigationStateChange={handleNavigationChange}
+        style={{ flex: 1 }}
+      />
+    );
+  }
 
   return (
     <SafeAreaView className="bg-white p-4">
@@ -218,7 +306,9 @@ const DetailAppointmentScreen = () => {
               </Text>
             </View>
             <View className="flex-row justify-between items-center border-b border-gray-200 pb-2">
-              <Text className="font-psemibold text-gray-700">Trạng thái:</Text>
+              <Text className="font-psemibold text-gray-700">
+                Trạng thái lịch:
+              </Text>
               <View
                 className={`px-3 py-1 ${statusStyle.backgroundColor} rounded-full`}
               >
@@ -227,6 +317,43 @@ const DetailAppointmentScreen = () => {
                 </Text>
               </View>
             </View>
+            <View className="flex-row justify-between items-center border-b border-gray-200 pb-2">
+              <Text className="font-psemibold text-gray-700">Thanh toán:</Text>
+              <View
+                className={`px-3 py-1 ${
+                  appointments?.package?.["payment-status"] === "unpaid"
+                    ? "bg-amber-100"
+                    : ""
+                } rounded-full`}
+              >
+                <Text
+                  className={`${
+                    appointments?.package?.["payment-status"] === "unpaid"
+                      ? "text-amber-800"
+                      : "text-emerald-400"
+                  } font-pmedium`}
+                >
+                  {appointments?.package?.["payment-status"] === "unpaid"
+                    ? "Chưa thanh toán"
+                    : "✓ Đã thanh toán"}
+                </Text>
+              </View>
+            </View>
+            {appointments?.package?.["payment-status"] === "unpaid" && (
+              <TouchableOpacity
+                className="px-6 py-4 rounded-lg bg-[#1f1f1fe3] "
+                onPress={handlePayment}
+                disabled={isLoadingPayment}
+              >
+                {isLoadingPayment ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text className="text-[#FFFFFF] font-pbold text-center">
+                    💳 Thanh toán
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
 
             <View>
               <View className="flex-col justify-between">
@@ -234,31 +361,37 @@ const DetailAppointmentScreen = () => {
                   Gói dịch vụ:
                 </Text>
                 <Text className="text-blue-800 font-psemibold break-words">
-                  {appointments?.package.name || "Chưa có dữ liệu"}
+                  {appointments?.package?.name || "Chưa có dữ liệu"}
                 </Text>
               </View>
               <View className="mt-2">
-                {appointments?.tasks.map((service, index) => (
-                  <View
-                    key={service.id}
-                    className="p-3 border-b border-gray-200"
-                  >
-                    <Text className="text-gray-700 font-pbold break-words">
-                      {index + 1}. {service.name}
-                    </Text>
-                    <View className="flex-row flex-wrap justify-between">
-                      <Text className="text-gray-500 break-words">
-                        Thời gian: {service["est-duration"]} phút
+                {appointments?.tasks && appointments.tasks.length > 0 ? (
+                  appointments.tasks.map((service, index) => (
+                    <View
+                      key={service.id || index}
+                      className="p-3 border-b border-gray-200"
+                    >
+                      <Text className="text-gray-700 font-pbold break-words">
+                        {index + 1}. {service.name || "Không có tên"}
                       </Text>
+                      <View className="flex-row flex-wrap justify-between">
+                        <Text className="text-gray-500 break-words">
+                          Thời gian: {service["est-duration"] || 0} phút
+                        </Text>
+                        <Text className="text-gray-500 break-words">
+                          x{service["total-unit"] || 0} lần
+                        </Text>
+                      </View>
                       <Text className="text-gray-500 break-words">
-                        x{service["total-unit"]} lần
+                        Ghi chú: {service["client-note"] || "Chưa có ghi chú"}
                       </Text>
                     </View>
-                    <Text className="text-gray-500 break-words">
-                      Ghi chú: {service["client-note"]}
-                    </Text>
-                  </View>
-                ))}
+                  ))
+                ) : (
+                  <Text className="text-gray-500 font-pmedium">
+                    Không có nhiệm vụ nào
+                  </Text>
+                )}
               </View>
             </View>
 
@@ -266,7 +399,8 @@ const DetailAppointmentScreen = () => {
               <Text className="font-psemibold text-gray-700">
                 Tổng chi phí:{" "}
                 <Text className="text-blue-600 break-words">
-                  {appointments?.package["total-fee"].toLocaleString() || "0"}{" "}
+                  {appointments?.package?.["total-fee"]?.toLocaleString() ||
+                    "0"}{" "}
                   VND
                 </Text>
               </Text>
@@ -279,22 +413,18 @@ const DetailAppointmentScreen = () => {
             </View>
           </View>
         </View>
-        <TouchableOpacity
-          className={`flex-1 px-6 py-4 rounded-lg mt-4 bg-[#64CBDB]`}
-          onPress={() =>
-            router.push({
-              pathname: "/report-appointment/[id]",
-              params: {
-                id: String(id),
-                listTask: JSON.stringify(appointments?.tasks),
-              },
-            })
-          }
-        >
-          <Text className="text-white font-pmedium text-center break-words items-center">
-            📋 Xem báo cáo tiến trình task
-          </Text>
-        </TouchableOpacity>
+
+        <View className="mt-4  items-center justify-center">
+          <TouchableOpacity
+            className="px-6 py-4 rounded-lg bg-[#64CBDB] w-[90%]"
+            onPress={handleViewReport}
+          >
+            <Text className="text-white font-pmedium text-center">
+              📋 Xem báo cáo tiến trình task
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <View className="mt-6 p-2 rounded-2xl">
           <Text className="text-xl font-psemibold mb-4 text-blue-600">
             Lời khuyên từ điều dưỡng

@@ -16,6 +16,8 @@ import HeaderBack from "@/components/HeaderBack";
 import CustomInput from "@/components/CustomInput";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
+import CustomRadio from "@/components/CustomRadio";
+import { genderOptions } from "@/app/create-patient";
 
 interface FormErrors {
   fullName?: string;
@@ -34,6 +36,7 @@ interface PatientForm {
   district: string;
   ward: string;
   address: string;
+  gender: boolean;
   medicalCondition: string;
   nursingNotes: string;
 }
@@ -93,6 +96,7 @@ const UpdatePatientScreen = () => {
     nursingNotes: "",
     phone: "",
     ward: "",
+    gender: true,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -172,7 +176,7 @@ const UpdatePatientScreen = () => {
         district: formData.district,
         dob: formData.dob,
         "full-name": formData.fullName,
-        gender: true,
+        gender: formData.gender,
         "note-for-nurse": formData.nursingNotes,
         "phone-number": formData.phone,
         ward: formData.ward,
@@ -235,6 +239,7 @@ const UpdatePatientScreen = () => {
         address: selectedPatient.address || "",
         medicalCondition: selectedPatient["desc-pathology"] || "",
         nursingNotes: selectedPatient["note-for-nurse"] || "",
+        gender: selectedPatient.gender ?? true,
       });
 
       const foundDistrict = districts.find(
@@ -253,7 +258,7 @@ const UpdatePatientScreen = () => {
       className="flex-1"
     >
       <ScrollView className="flex-1">
-        <View className="p-4">
+        <View className="p-4 mt-8">
           <View className="bg-white p-4 rounded-xl">
             <HeaderBack />
             <CustomInput
@@ -388,6 +393,15 @@ const UpdatePatientScreen = () => {
               containerClassName="bg-white rounded-lg shadow-sm"
               error={errors.address}
             />
+
+            <View className="bg-white rounded-lg shadow-sm gap-2 mt-2">
+              <CustomRadio
+                value={formData.gender}
+                label="Giới tính"
+                onValueChange={(gender) => setFormData({ ...formData, gender })}
+                options={genderOptions}
+              />
+            </View>
 
             <CustomInput
               label="Mô tả bệnh lý"

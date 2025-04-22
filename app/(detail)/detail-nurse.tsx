@@ -78,7 +78,7 @@ const DetailNurseScreen = () => {
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
     router.push({
-      pathname: "/detail-schedule/[id]",
+      pathname: "/detail-schedule",
       params: {
         id: String(id),
         selectedDate: date.toISOString(),
@@ -191,6 +191,7 @@ const DetailNurseScreen = () => {
               keyExtractor={(item) => item.toISOString()}
               horizontal
               showsHorizontalScrollIndicator={false}
+              removeClippedSubviews={false}
               contentContainerStyle={{
                 paddingHorizontal: 16,
                 paddingVertical: 10,

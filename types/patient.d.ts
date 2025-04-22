@@ -7,6 +7,7 @@ export interface Patient {
   ward: string;
   district: string;
   city: string;
+  gender: boolean;
   "desc-pathology": string;
   "note-for-nurse": string;
 }

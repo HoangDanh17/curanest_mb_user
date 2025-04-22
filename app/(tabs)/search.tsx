@@ -56,7 +56,7 @@ const CategoryScreen = () => {
         </Text>
       </View>
 
-      <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-6">
+      <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-4">
         <Ionicons name="search" size={20} color="#888" />
         <TextInput
           value={searchText}
@@ -64,7 +64,7 @@ const CategoryScreen = () => {
           placeholder="Tìm kiếm theo tên dịch vụ"
           placeholderTextColor="#888"
           onSubmitEditing={handleSearchSubmit}
-          className="flex-1 text-base text-gray-600 ml-2 font-psemibold"
+          className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
         />
       </View>
 
@@ -74,7 +74,10 @@ const CategoryScreen = () => {
         </View>
       ) : searchResult !== null ? (
         searchResult.length > 0 ? (
-          <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 24 }}
+            showsVerticalScrollIndicator={false}
+          >
             {searchResult.map((categoryGroup) => (
               <View key={categoryGroup["category-info"].id} className="mb-4">
                 <View className="flex-row items-center mb-4">
@@ -98,7 +101,7 @@ const CategoryScreen = () => {
                       className="flex-row items-center py-2 px-3 rounded-full border-2 border-[#64CBCC] mr-2 mb-2 bg-gray-50"
                       onPress={() =>
                         router.push({
-                          pathname: "/list-nurse/[id]",
+                          pathname: "/list-nurse",
                           params: { id: service.id, serviceName: service.name },
                         })
                       }

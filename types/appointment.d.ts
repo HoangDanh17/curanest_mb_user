@@ -5,7 +5,7 @@ export type Status =
   | "waiting"
   | "confirmed"
   | "success"
-  | "refused"
+  | "upcoming"
   | "changed";
 
 export interface StatusStyle {
@@ -23,6 +23,7 @@ export type AppointmentCardProps = {
   status: Status;
   packageId: string;
   nurseId: string;
+  duration: number;
   patientId: string;
 };
 
@@ -43,6 +44,7 @@ export type CreateAppointment = {
 export type CreateAppointmentRes = {
   status: number;
   message: string;
+  "object-id": string;
 };
 
 export type AppointmentList = {
@@ -54,6 +56,7 @@ export type AppointmentList = {
   "est-date": string;
   "act-date": string;
   status: Status;
+  "total-est-duration": number;
   "created-at": string;
 };
 
@@ -66,6 +69,7 @@ export type AppointmentListNurse = {
   "est-date": string;
   "act-date": string;
   status: Status;
+  "total-est-duration": number;
   "created-at": string;
   nurse: ListNurseData | null;
 };
