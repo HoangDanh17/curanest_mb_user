@@ -190,9 +190,16 @@ export default function Schedule() {
           </Tab.Screen>
         </Tab.Navigator>
       ) : (
-        <View className="flex-1 items-center justify-center bg-white">
-          <Text className="text-gray-500 text-base font-pmedium">
-            Vui lòng chọn một hồ sơ bệnh nhân để xem lịch hẹn
+        <View className="flex-1 justify-center items-center bg-white">
+          <Image
+            source={{
+              uri: "https://img.freepik.com/free-vector/select-concept-illustration_114360-383.jpg?w=360",
+            }}
+            className="w-48 h-48 mb-2"
+            resizeMode="contain"
+          />
+          <Text className="text-lg text-gray-600 font-psemibold">
+            Vui lòng chọn hồ sơ trước
           </Text>
         </View>
       )}

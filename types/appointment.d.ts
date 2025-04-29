@@ -25,11 +25,16 @@ export type AppointmentCardProps = {
   nurseId: string;
   duration: number;
   patientId: string;
+  actTime: string | null;
 };
 
 export type CreateAppointment = {
-  dates: string[];
+  "date-nurse-mappings": {
+    date: string;
+    "nursing-id"?: string;
+  }[];
   "nursing-id"?: string;
+  "patient-address": string;
   "patient-id": string;
   "svcpackage-id": string;
   "task-infos": {
@@ -53,6 +58,8 @@ export type AppointmentList = {
   "cuspackage-id": string;
   "nursing-id": string;
   "patient-id": string;
+  "patient-address": string;
+  "patient-lat-lng": string;
   "est-date": string;
   "act-date": string;
   status: Status;
@@ -66,6 +73,8 @@ export type AppointmentListNurse = {
   "cuspackage-id": string;
   "nursing-id": string;
   "patient-id": string;
+  "patient-address": string;
+  "patient-lat-lng": string;
   "est-date": string;
   "act-date": string;
   status: Status;
@@ -109,4 +118,62 @@ export type AppointmentDetail = {
 export type AppointmentDetailRes = {
   status: number;
   data: AppointmentDetail;
+};
+
+export interface Service {
+  id: string;
+  name: string;
+  quantity: number;
+  baseCost: number;
+  additionalCost: number;
+  totalCost: number;
+  duration: number;
+  note: string;
+  totalUnit: number;
+}
+
+export interface PackageData {
+  day: string;
+  description: string;
+  packageId: string;
+  packageName: string;
+  serviceId: string;
+  services: Service[];
+  totalDuration: number;
+  totalPrice: number;
+  discountedPrice?: number;
+}
+
+export interface PatientData {
+  address: string;
+  city: string;
+  "desc-pathology": string;
+  district: string;
+  dob: string;
+  "full-name": string;
+  id: string;
+  "note-for-nurse": string;
+  "phone-number": string;
+  ward: string;
+}
+
+export interface Appointment {
+  date: string;
+  "nursing-id"?: string;
+  "nurse-name"?: string;
+}
+
+export interface NurseTime {
+  "appointment-id": string;
+  "patient-id": string;
+  "est-date": string;
+  "est-end-time": string;
+  status: string;
+  "total-est-duration": number;
+  "est-travel-time": number;
+}
+
+export type NurseTimeRes = {
+  status: number;
+  data: NurseTime[];
 };

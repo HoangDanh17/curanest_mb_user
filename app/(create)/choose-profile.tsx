@@ -3,8 +3,8 @@ import { useSearch } from "@/app/provider";
 import HeaderBack from "@/components/HeaderBack";
 import ImageUrl from "@/data/ImageUrl";
 import { Patient } from "@/types/patient";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -21,39 +21,8 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-const ChooseProfilePatientScreen = () => {
-  const { setIsSearch } = useSearch();
-  const { id, nurseInfo } = useLocalSearchParams();
-  const [patientList, setPatientList] = useState<Patient[]>([]);
-  const router = useRouter();
-
-  async function fetchPatientList() {
-    try {
-      const response = await patientApiRequest.getAllPatient();
-      setPatientList(response.payload.data);
-    } catch (error) {
-      console.error("Error fetching patient list:", error);
-    }
-  }
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchPatientList();
-    }, [])
-  );
-
-  const handleClick = (item: Patient) => {
-    router.push({
-      pathname: "/(create)/choose-pack",
-      params: {
-        id: String(id),
-        nurseInfo: nurseInfo,
-        patient: JSON.stringify(item),
-      },
-    });
-    setIsSearch(true);
-  };
-
+// Component cho mỗi item trong danh sách
+const PatientItem = ({ item, onPress }: { item: Patient; onPress: () => void }) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -74,9 +43,9 @@ const ChooseProfilePatientScreen = () => {
     shadowRadius: scale.value === 1 ? 6 : 3,
   }));
 
-  const renderItem = ({ item }: { item: Patient }) => (
+  return (
     <TouchableWithoutFeedback
-      onPress={() => handleClick(item)}
+      onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
     >
@@ -92,7 +61,6 @@ const ChooseProfilePatientScreen = () => {
               {item["full-name"]}
             </Text>
 
-            {/* Ngày sinh */}
             <View className="flex-row items-center">
               <Ionicons name="calendar-outline" size={16} color="#888" />
               <Text className="text-sm text-gray-600 ml-2">
@@ -101,7 +69,6 @@ const ChooseProfilePatientScreen = () => {
               </Text>
             </View>
 
-            {/* Số điện thoại */}
             <View className="flex-row items-center">
               <Ionicons name="call-outline" size={16} color="#888" />
               <Text className="text-sm text-gray-600 ml-2">
@@ -110,7 +77,6 @@ const ChooseProfilePatientScreen = () => {
               </Text>
             </View>
 
-            {/* Địa chỉ */}
             <View className="flex-row items-start">
               <Ionicons name="location-outline" size={16} color="#888" />
               <Text className="text-sm text-gray-500 ml-2 leading-5">
@@ -121,13 +87,46 @@ const ChooseProfilePatientScreen = () => {
             </View>
           </View>
 
-          {/* Mũi tên điều hướng */}
           <View className="absolute top-5 right-5 mt-2">
             <Ionicons name="chevron-forward" size={24} color="#212626" />
           </View>
         </LinearGradient>
       </Animated.View>
     </TouchableWithoutFeedback>
+  );
+};
+
+const ChooseProfilePatientScreen = () => {
+  const { id, nurseInfo } = useLocalSearchParams();
+  const [patientList, setPatientList] = useState<Patient[]>([]);
+  const router = useRouter();
+
+  async function fetchPatientList() {
+    try {
+      const response = await patientApiRequest.getAllPatient();
+      setPatientList(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+    }
+  }
+
+  useEffect(() => {
+    fetchPatientList();
+  }, []);
+
+  const handleClick = (item: Patient) => {
+    router.push({
+      pathname: "/(create)/choose-pack",
+      params: {
+        id: String(id),
+        nurseInfo: nurseInfo,
+        patient: JSON.stringify(item),
+      },
+    });
+  };
+
+  const renderItem = ({ item }: { item: Patient }) => (
+    <PatientItem item={item} onPress={() => handleClick(item)} />
   );
 
   return (

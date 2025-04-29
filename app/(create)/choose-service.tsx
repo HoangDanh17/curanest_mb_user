@@ -57,7 +57,7 @@ const ChooseServiceScreen = () => {
         className="flex-1"
         resizeMode="cover"
       >
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 30 }}>
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
           <View className="flex flex-row">
             <HeaderBack />
             <View className="flex-row items-center mb-6 mt-2 ml-2">
@@ -76,7 +76,7 @@ const ChooseServiceScreen = () => {
               placeholder="Tìm kiếm theo tên dịch vụ"
               placeholderTextColor="#888"
               onSubmitEditing={handleSearchSubmit}
-              className="flex-1 text-base text-gray-600 ml-2 font-psemibold"
+              className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
             />
           </View>
 

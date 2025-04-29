@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import IconTime from "@/assets/icon/clock-arrow-up.png";
-import { MaterialIcons } from "@expo/vector-icons"; // Using MaterialIcons from expo/vector-icons
+import { MaterialIcons } from "@expo/vector-icons";
 import { addMinutes, format } from "date-fns";
 import { AppointmentCardProps, Status, StatusStyle } from "@/types/appointment";
 import { router } from "expo-router";
@@ -21,7 +21,7 @@ const COLOR_MAP: Record<string, string> = {
   "text-gray-600": "#4b5563",
 };
 
-const STATUS_STYLES: Record<Status, StatusStyle> = {
+export const STATUS_STYLES: Record<Status, StatusStyle> = {
   waiting: {
     backgroundColor: "bg-amber-50",
     textColor: "text-amber-600",
@@ -71,6 +71,7 @@ const AppointmentCard = ({
   nurseId,
   patientId,
   duration,
+  actTime,
 }: AppointmentCardProps) => {
   const statusStyle = STATUS_STYLES[status] || DEFAULT_STATUS_STYLE;
   const formattedDate = format(time, "dd/MM/yyyy");
@@ -86,6 +87,7 @@ const AppointmentCard = ({
         patientId: patientId,
         date: time,
         status: status,
+        actTime: actTime,
       },
     });
   };
@@ -93,7 +95,12 @@ const AppointmentCard = ({
   const renderAvatar = () => {
     if (!avatar) {
       return (
-        <ActivityIndicator size="large" color="#64CBDB" className="w-12 h-12" />
+        <Image
+          source={{
+            uri: "https://www.nursetogether.com/wp-content/uploads/2024/09/Registered-Nurse-Illustration-transparent.png",
+          }}
+          className="w-12 h-12 rounded-2xl shadow"
+        />
       );
     }
     return (
@@ -153,7 +160,9 @@ const AppointmentCard = ({
 
           <View className="flex flex-row items-center mt-2">
             <Image source={IconTime} className="w-4 h-4 mr-1" />
-            <Text className="text-sm text-gray-500 ml-1 font-pmedium">{formattedTime}</Text>
+            <Text className="text-sm text-gray-500 ml-1 font-pmedium">
+              {formattedTime}
+            </Text>
             <View className="w-1 h-1 rounded-full bg-gray-300 mx-2" />
             <Text className="text-sm text-gray-500 ml-1 font-pmedium">
               {calculateEndTime()}

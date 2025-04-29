@@ -49,25 +49,6 @@ const CategoryScreen = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white p-4">
-      <View className="flex-row items-center mb-6">
-        <Ionicons name="medkit" size={28} color="#64D1CB" />
-        <Text className="ml-2 text-2xl font-pbold text-gray-800">
-          Tìm kiếm dịch vụ
-        </Text>
-      </View>
-
-      <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-4">
-        <Ionicons name="search" size={20} color="#888" />
-        <TextInput
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholder="Tìm kiếm theo tên dịch vụ"
-          placeholderTextColor="#888"
-          onSubmitEditing={handleSearchSubmit}
-          className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
-        />
-      </View>
-
       {loading ? (
         <View className="my-4 items-center">
           <ActivityIndicator size="large" color="#64D1CB" />
@@ -78,6 +59,25 @@ const CategoryScreen = () => {
             contentContainerStyle={{ paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
           >
+            <View className="flex-row items-center mb-6">
+              <Ionicons name="medkit" size={28} color="#64D1CB" />
+              <Text className="ml-2 text-2xl font-pbold text-gray-800">
+                Tìm kiếm dịch vụ
+              </Text>
+            </View>
+
+            <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-4">
+              <Ionicons name="search" size={20} color="#888" />
+              <TextInput
+                value={searchText}
+                onChangeText={setSearchText}
+                placeholder="Tìm kiếm theo tên dịch vụ"
+                placeholderTextColor="#888"
+                onSubmitEditing={handleSearchSubmit}
+                className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
+              />
+            </View>
+
             {searchResult.map((categoryGroup) => (
               <View key={categoryGroup["category-info"].id} className="mb-4">
                 <View className="flex-row items-center mb-4">

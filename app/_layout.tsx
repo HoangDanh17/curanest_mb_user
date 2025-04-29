@@ -10,6 +10,8 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import { toastConfig } from "@/components/ToastConfig";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -213,6 +215,7 @@ export default function RootLayout() {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
+      <Toast config={toastConfig} />
     </SearchProvider>
   );
 }
