@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { AppointmentProps } from "@/components/appointment/UpcomingScreen";
@@ -15,7 +16,9 @@ import appointmentApiRequest from "@/app/api/appointmentApi";
 
 const CompletedScreen = ({ appointment }: AppointmentProps) => {
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
-  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    string | null
+  >(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [rating, setRating] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,7 +75,7 @@ const CompletedScreen = ({ appointment }: AppointmentProps) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5", marginTop: 8 }}>
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <FlatList
         data={appointment}
         keyExtractor={(item) => item.id}
@@ -86,6 +89,7 @@ const CompletedScreen = ({ appointment }: AppointmentProps) => {
               time={item["est-date"]}
               status={item.status}
               packageId={item["cuspackage-id"]}
+              actTime={item["act-date"]}
               nurseId={item["nursing-id"]}
               patientId={item["patient-id"]}
               duration={item["total-est-duration"]}
@@ -102,8 +106,17 @@ const CompletedScreen = ({ appointment }: AppointmentProps) => {
           </View>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Không có lịch hẹn hoàn thành</Text>
+          <View className="flex-1 justify-center items-center ">
+            <Image
+              source={{
+                uri: "https://cdni.iconscout.com/illustration/premium/thumb/man-with-no-schedule-illustration-download-in-svg-png-gif-file-formats--calendar-appointment-empty-state-pack-people-illustrations-10920936.png",
+              }}
+              className="w-48 h-48 mb-2"
+              resizeMode="contain"
+            />
+            <Text className="text-lg text-gray-600">
+              Không có lịch hẹn hoàn thành
+            </Text>
           </View>
         }
       />

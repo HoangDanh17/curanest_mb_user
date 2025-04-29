@@ -1,17 +1,18 @@
+import { UserData } from "@/app/(tabs)/profile";
 import React, { createContext, useState, useContext, ReactNode } from "react";
 
 type SearchContextType = {
-  isSearch: boolean;
-  setIsSearch: (value: boolean) => void;
+  userData: UserData | undefined;
+  setUserData: (data: UserData | undefined) => void;
 };
 
 const SearchContext = createContext<SearchContextType | undefined>(undefined);
 
 export const SearchProvider = ({ children }: { children: ReactNode }) => {
-  const [isSearch, setIsSearch] = useState<boolean>(false);
+  const [userData, setUserData] = useState<UserData | undefined>();
 
   return (
-    <SearchContext.Provider value={{ isSearch, setIsSearch }}>
+    <SearchContext.Provider value={{ userData, setUserData }}>
       {children}
     </SearchContext.Provider>
   );
@@ -25,5 +26,4 @@ export const useSearch = (): SearchContextType => {
   return context;
 };
 
-// ✅ Add a default export
 export default SearchProvider;

@@ -15,8 +15,9 @@ import { ProfileHeaderProps } from "@/types/profile";
 import Color from "@/assets/images/gradient.png";
 import { router } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useSearch } from "@/app/provider";
 
-type UserData = {
+export type UserData = {
   id: string;
   "full-name": string;
   email: string;
@@ -60,23 +61,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 };
 
 const ProfileScreen = () => {
-  const [data, setData] = useState<UserData | undefined>();
-
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const value = await AsyncStorage.getItem("userInfo");
-        if (value) {
-          const parsedValue: UserData = JSON.parse(value);
-          setData(parsedValue);
-        }
-      } catch (error) {
-        console.error("Error fetching user info:", error);
-      }
-    };
-
-    fetchUserInfo();
-  }, []);
+  const { userData } = useSearch();
 
   const handleLogout = async () => {
     Alert.alert(
@@ -116,8 +101,8 @@ const ProfileScreen = () => {
               style={{ borderTopLeftRadius: 30, borderTopRightRadius: 30 }}
             >
               <ProfileHeader
-                name={data?.["full-name"]}
-                phone={data?.["phone-number"]}
+                name={userData?.["full-name"]}
+                phone={userData?.["phone-number"]}
                 avatar={undefined}
               />
 

@@ -18,6 +18,9 @@ import { router, useFocusEffect } from "expo-router";
 import { Patient } from "@/types/patient";
 import patientApiRequest from "@/app/api/patientApi";
 import { calculateAge } from "@/lib/utils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { UserData } from "@/app/(tabs)/profile";
+import { useSearch } from "@/app/provider";
 
 const { width, height } = Dimensions.get("window");
 
@@ -35,7 +38,7 @@ const buttonData = [
 const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
   const [patientList, setPatientList] = useState<Patient[]>();
-
+  const { setUserData } = useSearch();
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -51,11 +54,25 @@ const HomeScreen = () => {
     } catch (error) {}
   }
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchPatientList();
-    }, [])
-  );
+  const [data, setData] = useState<UserData | undefined>();
+
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const value = await AsyncStorage.getItem("userInfo");
+        if (value) {
+          const parsedValue: UserData = JSON.parse(value);
+          setData(parsedValue);
+          setUserData(parsedValue);
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+    fetchPatientList();
+  }, []);
 
   return (
     <SafeAreaView className="bg-white h-full">
@@ -65,7 +82,7 @@ const HomeScreen = () => {
             <Text className="text-md font-psemibold text-gray-400">
               Chào mừng trở lại
             </Text>
-            <Text className="text-lg font-pbold">0789456</Text>
+            <Text className="text-lg font-pbold">{data?.["full-name"]}</Text>
           </View>
           <View>
             <Image

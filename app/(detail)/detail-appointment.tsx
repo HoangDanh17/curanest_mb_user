@@ -15,12 +15,13 @@ import { AppointmentDetail } from "@/types/appointment";
 import { DetailNurse } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
 import invoiceApiRequest from "@/app/api/invoiceApi";
-import { addMinutes, format } from "date-fns";
+import { addMinutes, format, parseISO } from "date-fns";
 import { WebView } from "react-native-webview";
 import { URL } from "react-native-url-polyfill";
 
 const DetailAppointmentScreen = () => {
-  const { id, packageId, nurseId, date, status } = useLocalSearchParams();
+  const { id, packageId, nurseId, date, status, actTime } =
+    useLocalSearchParams();
   const [appointments, setAppointments] = useState<AppointmentDetail>();
   const [detailNurseData, setDetailNurseData] = useState<DetailNurse>();
   const [paymentUrl, setPaymentUrl] = useState("");
@@ -28,7 +29,7 @@ const DetailAppointmentScreen = () => {
 
   async function fetchAppointmentDetail() {
     try {
-      if (!packageId || !date) return; // Silently skip if missing params
+      if (!packageId || !date) return;
       const response = await appointmentApiRequest.getAppointmentDetail(
         String(packageId),
         String(date)
@@ -191,6 +192,18 @@ const DetailAppointmentScreen = () => {
     );
   }
 
+  let formattedActTime = "Chưa bắt đầu";
+  if (actTime && typeof actTime === "string") {
+    try {
+      const parsedActTime = parseISO(actTime);
+      if (!isNaN(parsedActTime.getTime())) {
+        formattedActTime = format(parsedActTime, "dd/MM/yyyy - hh:mm a");
+      }
+    } catch (error) {
+      console.error("Error formatting actTime:", error);
+    }
+  }
+
   return (
     <SafeAreaView className="bg-white p-4">
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -207,9 +220,15 @@ const DetailAppointmentScreen = () => {
               borderRadius={99999}
             />
           ) : (
-            <View className="w-36 h-36 border-4 border-gray-200 rounded-full justify-center items-center">
-              <ActivityIndicator size="large" color="#64CBDB" />
-            </View>
+            <Image
+              source={{
+                uri:
+                  detailNurseData?.["nurse-picture"] ||
+                  "https://www.nursetogether.com/wp-content/uploads/2024/09/Registered-Nurse-Illustration-transparent.png",
+              }}
+              className="w-36 h-36 border-4 border-gray-200"
+              borderRadius={99999}
+            />
           )}
           {detailNurseData && (
             <View className="mt-2 items-center absolute top-[100]">
@@ -286,7 +305,6 @@ const DetailAppointmentScreen = () => {
             </View>
           ) : (
             <View className="space-y-4 gap-4 min-h-[300px] justify-center items-center">
-              <ActivityIndicator size="large" color="#64CBDB" />
               <Text className="text-gray-500 font-pmedium">
                 Đang tìm kiếm điều dưỡng...
               </Text>
@@ -304,6 +322,12 @@ const DetailAppointmentScreen = () => {
               <Text className="text-gray-500 font-pmedium">
                 {formattedTime} • {calculateEndTime()}
               </Text>
+            </View>
+            <View className="flex-row justify-between items-center border-b border-gray-200 pb-2">
+              <Text className="font-psemibold text-gray-700">
+                Thời gian đến:
+              </Text>
+              <Text className="text-gray-500 font-pmedium">{formattedActTime}</Text>
             </View>
             <View className="flex-row justify-between items-center border-b border-gray-200 pb-2">
               <Text className="font-psemibold text-gray-700">
@@ -383,7 +407,7 @@ const DetailAppointmentScreen = () => {
                         </Text>
                       </View>
                       <Text className="text-gray-500 break-words">
-                        Ghi chú: {service["client-note"] || "Chưa có ghi chú"}
+                        Ghi chú: {service["client-note"] || "Không có ghi chú"}
                       </Text>
                     </View>
                   ))

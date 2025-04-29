@@ -61,3 +61,15 @@ export type DetailNurseRes = {
   status: number;
   data: DetailNurse;
 };
+
+export type CheckTimeNurse = {
+  "nurse-id": string;
+  "est-start-date": string;
+  "est-duration": number;
+  "is-availability": boolean;
+};
+
+export type CheckTimeNurseRes = {
+  status: number;
+  data: CheckTimeNurse[];
+};

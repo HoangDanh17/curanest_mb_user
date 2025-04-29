@@ -6,64 +6,23 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
-  TextInput,
   ActivityIndicator,
   Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ListNurseData } from "@/types/nurse";
 import appointmentApiRequest from "@/app/api/appointmentApi";
-import { CreateAppointment } from "@/types/appointment";
+import {
+  Appointment,
+  CreateAppointment,
+  PackageData,
+  PatientData,
+  Service,
+} from "@/types/appointment";
 import invoiceApiRequest from "@/app/api/invoiceApi";
 import { WebView } from "react-native-webview";
-import { URL } from "react-native-url-polyfill"; // Dùng để parse URL
-
-interface Service {
-  id: string;
-  name: string;
-  quantity: number;
-  baseCost: number;
-  additionalCost: number;
-  totalCost: number;
-  duration: number;
-  note: string;
-  totalUnit: number;
-}
-
-interface PackageData {
-  day: string;
-  description: string;
-  packageId: string;
-  packageName: string;
-  serviceId: string;
-  services: Service[];
-  totalDuration: number;
-  totalPrice: number;
-  discountedPrice?: number;
-}
-
-interface PatientData {
-  address: string;
-  city: string;
-  "desc-pathology": string;
-  district: string;
-  dob: string;
-  "full-name": string;
-  id: string;
-  "note-for-nurse": string;
-  "phone-number": string;
-  ward: string;
-}
-
-interface Appointment {
-  day: number;
-  date: string;
-  formattedDate: string;
-  startTime: string;
-  endTime: string;
-  duration: string;
-}
+import { URL } from "react-native-url-polyfill";
+import { addHours, addMinutes, format, subHours } from "date-fns";
 
 const safeParse = (data: any, name: string) => {
   try {
@@ -77,45 +36,30 @@ const safeParse = (data: any, name: string) => {
   }
 };
 
-const convertToISODate = (dateStr: string, timeStr: string) => {
-  const [day, month, year] = dateStr.split("/");
-
-  const [time, period] = timeStr.split(" ");
-  let [hours, minutes] = time.split(":");
-
-  hours = parseInt(hours, 10).toString();
-  if (period === "PM" && hours !== "12") {
-    hours = (parseInt(hours, 10) + 12).toString();
-  } else if (period === "AM" && hours === "12") {
-    hours = "00";
-  }
-
-  const date = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00Z`);
-
-  if (isNaN(date.getTime())) {
-    throw new Error("Ngày giờ không hợp lệ");
-  }
-
-  date.setHours(date.getHours() - 7); // Trừ 7 tiếng
-  return date.toISOString();
-};
-
 const ConfirmScreen = () => {
-  const { packageInfo, patient, listDate, nurseInfo, discount, day } =
+  const { packageInfo, patient, listDate, duration, discount, day } =
     useLocalSearchParams();
   const packageData: PackageData | null = safeParse(packageInfo, "packageInfo");
   const patientData: PatientData | null = safeParse(patient, "patient");
-  const listDateData: Appointment[] | null = safeParse(listDate, "listDate");
-  const parsedNurseData: ListNurseData | null = safeParse(
-    nurseInfo,
-    "nurseInfo"
-  );
+  let listDateData: Appointment[] | null = safeParse(listDate, "listDate");
+
+  if (listDateData) {
+    listDateData = listDateData.map((appointment) => {
+      if (appointment["nursing-id"] === null) {
+        const { "nursing-id": _, ...rest } = appointment;
+        return rest;
+      }
+      return appointment;
+    });
+  }
+
+  const durationMinutes = Number(duration) || 0;
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [paymentUrl, setPaymentUrl] = useState(""); // State để lưu payos-url và hiển thị WebView
+  const [paymentUrl, setPaymentUrl] = useState("");
 
   const fetchInvoice = async (svcpackageId: string) => {
     try {
@@ -141,7 +85,7 @@ const ConfirmScreen = () => {
       url.includes("https://curanest.com.vn/payment-result-success") ||
       url.includes("https://curanest.com.vn/payment-result-fail")
     ) {
-      setPaymentUrl(""); // Đóng WebView
+      setPaymentUrl("");
 
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
@@ -170,17 +114,20 @@ const ConfirmScreen = () => {
       return;
     }
 
+    const submitListDateData = listDateData.map((appointment) => {
+      const { "nurse-name": _, ...rest } = appointment;
+      const formattedDate = rest.date.includes("+07:00")
+        ? rest.date.replace("+07:00", "Z")
+        : rest.date;
+      return {
+        ...rest,
+        date: formattedDate,
+      };
+    });
+
     const submitData: CreateAppointment = {
-      dates: listDateData
-        .map((appointment) => {
-          try {
-            return convertToISODate(appointment.date, appointment.startTime);
-          } catch (error) {
-            console.error("Lỗi khi chuyển đổi ngày giờ:", error);
-            return null;
-          }
-        })
-        .filter((date) => date !== null),
+      "date-nurse-mappings": submitListDateData,
+      "patient-address": `${patientData.address},${patientData.ward},${patientData.district},${patientData.city}`,
       "patient-id": patientData?.id || "",
       "svcpackage-id": packageData?.packageId || "",
       "task-infos": packageData.services.map((service) => ({
@@ -192,35 +139,32 @@ const ConfirmScreen = () => {
       })),
     };
 
-    if (parsedNurseData && parsedNurseData["nurse-id"]) {
-      submitData["nursing-id"] = parsedNurseData["nurse-id"];
-    }
+    console.log("🚀 ~ handleSubmit ~ submitData:", submitData);
+    // try {
+    //   const response = await appointmentApiRequest.createAppointment(
+    //     submitData
+    //   );
+    //   if (response) {
+    //     const invoiceData = await fetchInvoice(response.payload["object-id"]);
 
-    try {
-      const response = await appointmentApiRequest.createAppointment(
-        submitData
-      );
-      if (response) {
-        const invoiceData = await fetchInvoice(response.payload["object-id"]);
-
-        if (invoiceData && invoiceData.length > 0) {
-          const payosUrl = invoiceData[0]["payos-url"];
-          if (payosUrl) {
-            setPaymentUrl(payosUrl);
-          } else {
-            throw new Error("Không tìm thấy payos-url trong invoice data");
-          }
-        } else {
-          throw new Error("Không lấy được dữ liệu invoice");
-        }
-      }
-    } catch (error) {
-      console.error("Lỗi khi gửi API:", error);
-      setIsSuccess(false);
-      setIsModalVisible(true);
-    } finally {
-      setIsLoading(false);
-    }
+    //     if (invoiceData && invoiceData.length > 0) {
+    //       const payosUrl = invoiceData[0]["payos-url"];
+    //       if (payosUrl) {
+    //         setPaymentUrl(payosUrl);
+    //       } else {
+    //         throw new Error("Không tìm thấy payos-url trong invoice data");
+    //       }
+    //     } else {
+    //       throw new Error("Không lấy được dữ liệu invoice");
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Lỗi khi gửi API:", error);
+    //   setIsSuccess(false);
+    //   setIsModalVisible(true);
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
 
   const handleGoHome = () => {
@@ -267,7 +211,7 @@ const ConfirmScreen = () => {
         <WebView
           source={{ uri: paymentUrl }}
           onNavigationStateChange={handleNavigationChange}
-          style={{ flex: 1 }}
+          style={{ flex: 1, marginTop: 10 }}
         />
       ) : (
         <>
@@ -317,70 +261,103 @@ const ConfirmScreen = () => {
                       nestedScrollEnabled={true}
                       showsVerticalScrollIndicator={true}
                     >
-                      {listDateData.map((appointment, index) => (
-                        <View
-                          key={index}
-                          className="mb-4 pb-2 border-b border-gray-200 last:border-b-0"
-                        >
-                          <View className="flex-row items-center mb-1">
-                            <MaterialIcons
-                              name="calendar-today"
-                              size={16}
-                              color="#6b7280"
-                              style={{ marginRight: 8 }}
-                            />
-                            <Text className="text-base font-pmedium text-gray-700">
-                              {`Ngày ${appointment.day}: ${appointment.formattedDate}`}
-                            </Text>
+                      {listDateData.map((appointment, index) => {
+                        const startTime = new Date(appointment.date);
+                        const endTime = addMinutes(startTime, durationMinutes);
+                        return (
+                          <View
+                            key={index}
+                            className="mb-4 pb-2 border-b border-gray-200 last:border-b-0"
+                          >
+                            <View className="flex-row items-center mb-1">
+                              <MaterialIcons
+                                name="calendar-today"
+                                size={16}
+                                color="#6b7280"
+                                style={{ marginRight: 8 }}
+                              />
+                              <Text className="text-base font-pmedium text-gray-700">
+                                {`Ngày ${index + 1}: ${format(
+                                  new Date(appointment.date),
+                                  "dd/MM/yyyy"
+                                )}`}
+                              </Text>
+                            </View>
+                            <View className="flex-row items-center">
+                              <MaterialIcons
+                                name="access-time"
+                                size={16}
+                                color="#6b7280"
+                                style={{ marginRight: 8 }}
+                              />
+                              <Text className="text-sm font-pmedium text-gray-600">
+                                {`${format(startTime, "HH:mm")} - ${format(
+                                  endTime,
+                                  "HH:mm"
+                                )}`}
+                              </Text>
+                            </View>
                           </View>
-                          <View className="flex-row items-center">
-                            <MaterialIcons
-                              name="access-time"
-                              size={16}
-                              color="#6b7280"
-                              style={{ marginRight: 8 }}
-                            />
-                            <Text className="text-sm font-pmedium text-gray-600">
-                              {`${appointment.startTime} - ${appointment.endTime}`}
-                            </Text>
-                          </View>
-                        </View>
-                      ))}
+                        );
+                      })}
                     </ScrollView>
                     <Text className="text-sm font-pmedium text-gray-400 mt-2 text-center">
                       Cuộn để xem thêm
                     </Text>
                   </View>
                 ) : (
-                  listDateData.map((appointment, index) => (
-                    <View
-                      key={index}
-                      className="mb-4 pb-2 border-b border-gray-200 last:border-b-0"
-                    >
-                      <View className="flex-row items-center mb-1">
-                        <MaterialIcons
-                          name="calendar-today"
-                          size={16}
-                          color="#6b7280"
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text className="text-base font-pmedium text-gray-700">
-                          {`Ngày ${appointment.day}: ${appointment.formattedDate}`}
-                        </Text>
+                  listDateData.map((appointment, index) => {
+                    const startTime = new Date(appointment.date);
+                    const endTime = addMinutes(startTime, durationMinutes);
+                    return (
+                      <View
+                        key={index}
+                        className="pb-2 border-b border-gray-200 last:border-b-0"
+                      >
+                        <View className="flex-row items-center mb-1">
+                          <MaterialIcons
+                            name="calendar-today"
+                            size={16}
+                            color="#6b7280"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text className="text-base font-pmedium text-gray-700">
+                            {`Ngày ${index + 1}: ${format(
+                              new Date(appointment.date),
+                              "dd/MM/yyyy"
+                            )}`}
+                          </Text>
+                        </View>
+                        <View className="flex-row items-center mb-1">
+                          <MaterialIcons
+                            name="access-time"
+                            size={16}
+                            color="#6b7280"
+                            style={{ marginRight: 8 }}
+                          />
+                          <Text className="text-sm font-pmedium text-gray-600">
+                            {`${format(startTime, "HH:mm")} - ${format(
+                              endTime,
+                              "HH:mm"
+                            )}`}
+                          </Text>
+                        </View>
+                        {appointment["nurse-name"] && (
+                          <View className="flex-row items-center">
+                            <MaterialIcons
+                              name="person"
+                              size={16}
+                              color="#6b7280"
+                              style={{ marginRight: 8 }}
+                            />
+                            <Text className="text-sm font-pmedium text-gray-600">
+                              {appointment["nurse-name"]}
+                            </Text>
+                          </View>
+                        )}
                       </View>
-                      <View className="flex-row items-center">
-                        <MaterialIcons
-                          name="access-time"
-                          size={16}
-                          color="#6b7280"
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text className="text-sm font-pmedium text-gray-600">
-                          {`${appointment.startTime} - ${appointment.endTime}`}
-                        </Text>
-                      </View>
-                    </View>
-                  ))
+                    );
+                  })
                 )
               ) : (
                 <Text className="text-base font-pmedium text-gray-400">
@@ -388,34 +365,8 @@ const ConfirmScreen = () => {
                 </Text>
               )}
             </View>
-            {parsedNurseData && (
-              <View className="mb-6">
-                <Text className="text-lg font-pbold mb-2 text-teal-500">
-                  Điều dưỡng đã chọn
-                </Text>
-                <View className="flex-row items-center p-4">
-                  <Image
-                    source={{
-                      uri:
-                        parsedNurseData["nurse-picture"] === ""
-                          ? "https://i.pinimg.com/564x/a7/ff/90/a7ff9069f727d093e578528e2355ccff.jpg"
-                          : parsedNurseData["nurse-picture"],
-                    }}
-                    className="w-16 h-16 rounded-lg mr-4"
-                  />
-                  <View>
-                    <Text className="text-lg font-pbold">
-                      {parsedNurseData["nurse-name"]}
-                    </Text>
-                    <Text className="text-sm text-gray-500 font-pmedium mt-2">
-                      {parsedNurseData["current-work-place"]}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
 
-            <Text className="text-lg font-pbold mb-2 mt-2 text-teal-500">
+            <Text className="text-lg font-pbold mb-2 text-teal-500">
               Gói dịch vụ đã chọn
             </Text>
             {packageData.services.map((service: Service, index: number) => (

@@ -1,10 +1,16 @@
 import React from "react";
-import { View, SectionList, Text } from "react-native";
+import { View, SectionList, Text, Image } from "react-native";
 import { AppointmentListNurse, StatusStyle } from "@/types/appointment";
 import AppointmentCard from "@/components/AppointmentCard";
 
 // Define status styles for headers (matching AppointmentCard)
 const STATUS_STYLES: Record<string, StatusStyle> = {
+  waiting: {
+    backgroundColor: "bg-amber-50",
+    textColor: "text-amber-600",
+    borderColor: "border-2 border-amber-500",
+    label: "Chờ xác nhận",
+  },
   confirmed: {
     backgroundColor: "bg-sky-50",
     textColor: "text-sky-600",
@@ -16,12 +22,6 @@ const STATUS_STYLES: Record<string, StatusStyle> = {
     textColor: "text-violet-600",
     borderColor: "border-2 border-violet-500",
     label: "Chờ đổi điều dưỡng",
-  },
-  waiting: {
-    backgroundColor: "bg-amber-50",
-    textColor: "text-amber-600",
-    borderColor: "border-2 border-amber-500",
-    label: "Chờ xác nhận",
   },
 };
 
@@ -37,31 +37,43 @@ export interface AppointmentProps {
 }
 
 const UpcomingScreen = ({ appointment }: AppointmentProps) => {
-  // Group appointments by status
-  const groupedAppointments = {
-    confirmed: appointment.filter((item) => item.status === "confirmed"),
-    changed: appointment.filter((item) => item.status === "changed"),
-    waiting: appointment.filter((item) => item.status === "waiting"),
+  const sortAppointmentsByDate = (appointments: AppointmentListNurse[]) => {
+    return [...appointments].sort((a, b) => {
+      const dateA = new Date(a["est-date"]).getTime();
+      const dateB = new Date(b["est-date"]).getTime();
+      return dateA - dateB;
+    });
   };
 
-  // Create sections for SectionList in the desired order
+  const groupedAppointments = {
+    waiting: sortAppointmentsByDate(
+      appointment.filter((item) => item.status === "waiting")
+    ),
+    confirmed: sortAppointmentsByDate(
+      appointment.filter((item) => item.status === "confirmed")
+    ),
+    changed: sortAppointmentsByDate(
+      appointment.filter((item) => item.status === "changed")
+    ),
+  };
+
   const sections = [
     {
-      title: "confirmed",
-      data: groupedAppointments.confirmed,
+      title: "waiting",
+      data: groupedAppointments.waiting,
     },
     {
       title: "changed",
       data: groupedAppointments.changed,
     },
     {
-      title: "waiting",
-      data: groupedAppointments.waiting,
+      title: "confirmed",
+      data: groupedAppointments.confirmed,
     },
-  ].filter((section) => section.data.length > 0); // Only include sections with data
+  ].filter((section) => section.data.length > 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#f5f5f5", marginTop: 8 }}>
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -74,6 +86,7 @@ const UpcomingScreen = ({ appointment }: AppointmentProps) => {
             nurseId={item["nursing-id"]}
             patientId={item["patient-id"]}
             time={item["est-date"]}
+            actTime={item["act-date"]}
             duration={item["total-est-duration"]}
             status={item.status}
           />
@@ -87,7 +100,9 @@ const UpcomingScreen = ({ appointment }: AppointmentProps) => {
             <View
               className={`px-4 py-2 ${statusStyle.backgroundColor} border-l-4`}
               style={{
-                borderLeftColor: statusStyle.textColor && COLOR_MAP[statusStyle.textColor] || "#4b5563",
+                borderLeftColor:
+                  (statusStyle.textColor && COLOR_MAP[statusStyle.textColor]) ||
+                  "#4b5563",
               }}
             >
               <Text className={`text-lg font-pbold ${statusStyle.textColor}`}>
@@ -98,10 +113,15 @@ const UpcomingScreen = ({ appointment }: AppointmentProps) => {
         }}
         stickySectionHeadersEnabled={false}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-8">
-            <Text className="text-gray-500 text-base font-pmedium">
-              Không có lịch hẹn nào
-            </Text>
+          <View className="flex-1 justify-center items-center my-4">
+            <Image
+              source={{
+                uri: "https://cdni.iconscout.com/illustration/premium/thumb/man-with-no-schedule-illustration-download-in-svg-png-gif-file-formats--calendar-appointment-empty-state-pack-people-illustrations-10920936.png",
+              }}
+              className="w-48 h-48 mb-2"
+              resizeMode="contain"
+            />
+            <Text className="text-lg text-gray-600">Không có lịch hẹn</Text>
           </View>
         }
       />
