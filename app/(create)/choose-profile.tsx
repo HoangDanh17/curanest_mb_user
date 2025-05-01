@@ -1,7 +1,5 @@
 import patientApiRequest from "@/app/api/patientApi";
-import { useSearch } from "@/app/provider";
 import HeaderBack from "@/components/HeaderBack";
-import ImageUrl from "@/data/ImageUrl";
 import { Patient } from "@/types/patient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,7 +8,6 @@ import {
   Text,
   FlatList,
   TouchableWithoutFeedback,
-  ImageBackground,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,8 +18,13 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-// Component cho mỗi item trong danh sách
-const PatientItem = ({ item, onPress }: { item: Patient; onPress: () => void }) => {
+const PatientItem = ({
+  item,
+  onPress,
+}: {
+  item: Patient;
+  onPress: () => void;
+}) => {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
@@ -138,6 +140,7 @@ const ChooseProfilePatientScreen = () => {
       <FlatList
         data={patientList}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={false}
         renderItem={renderItem}
         contentContainerStyle={{
           paddingBottom: 20,

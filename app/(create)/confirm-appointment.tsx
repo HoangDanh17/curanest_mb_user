@@ -22,7 +22,7 @@ import {
 import invoiceApiRequest from "@/app/api/invoiceApi";
 import { WebView } from "react-native-webview";
 import { URL } from "react-native-url-polyfill";
-import { addHours, addMinutes, format, subHours } from "date-fns";
+import { addMinutes, format } from "date-fns";
 
 const safeParse = (data: any, name: string) => {
   try {
@@ -89,9 +89,9 @@ const ConfirmScreen = () => {
 
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
-      console.log("Response Code:", responseCode);
+      const responseCancel = parsedUrl.searchParams.get("cancel");
 
-      if (responseCode === "00") {
+      if (responseCode === "00" && responseCancel !== "true") {
         setIsSuccess(true);
         setIsModalVisible(true);
       } else {
@@ -140,40 +140,41 @@ const ConfirmScreen = () => {
     };
 
     console.log("🚀 ~ handleSubmit ~ submitData:", submitData);
-    // try {
-    //   const response = await appointmentApiRequest.createAppointment(
-    //     submitData
-    //   );
-    //   if (response) {
-    //     const invoiceData = await fetchInvoice(response.payload["object-id"]);
+    try {
+      const response = await appointmentApiRequest.createAppointment(
+        submitData
+      );
+      if (response) {
+        const invoiceData = await fetchInvoice(response.payload["object-id"]);
 
-    //     if (invoiceData && invoiceData.length > 0) {
-    //       const payosUrl = invoiceData[0]["payos-url"];
-    //       if (payosUrl) {
-    //         setPaymentUrl(payosUrl);
-    //       } else {
-    //         throw new Error("Không tìm thấy payos-url trong invoice data");
-    //       }
-    //     } else {
-    //       throw new Error("Không lấy được dữ liệu invoice");
-    //     }
-    //   }
-    // } catch (error) {
-    //   console.error("Lỗi khi gửi API:", error);
-    //   setIsSuccess(false);
-    //   setIsModalVisible(true);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+        if (invoiceData && invoiceData.length > 0) {
+          const payosUrl = invoiceData[0]["payos-url"];
+          if (payosUrl) {
+            setPaymentUrl(payosUrl);
+          } else {
+            throw new Error("Không tìm thấy payos-url trong invoice data");
+          }
+        } else {
+          throw new Error("Không lấy được dữ liệu invoice");
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi gửi API:", error);
+      setIsSuccess(false);
+      setIsModalVisible(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoHome = () => {
     setIsModalVisible(false);
-    router.push("/(tabs)/home");
+    router.push("/(tabs)/schedule");
   };
 
   const handleCloseModal = () => {
     setIsModalVisible(false);
+    router.push("/(tabs)/home");
   };
 
   const totalPrice = packageData?.totalPrice || 0;

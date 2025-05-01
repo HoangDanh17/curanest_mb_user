@@ -53,9 +53,15 @@ const DateAvailableScreen = () => {
       : Array(numDays).fill("Chưa chọn")
   );
 
-  const [selectedTimeIndex, setSelectedTimeIndex] = useState<number | null>(null);
-  const [selectedDateIndex, setSelectedDateIndex] = useState<number | null>(null);
-  const [selectedNurseIndex, setSelectedNurseIndex] = useState<number | null>(null);
+  const [selectedTimeIndex, setSelectedTimeIndex] = useState<number | null>(
+    null
+  );
+  const [selectedDateIndex, setSelectedDateIndex] = useState<number | null>(
+    null
+  );
+  const [selectedNurseIndex, setSelectedNurseIndex] = useState<number | null>(
+    null
+  );
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
   const [isCalendarModalVisible, setCalendarModalVisible] = useState(false);
   const [isNurseModalVisible, setNurseModalVisible] = useState(false);
@@ -104,23 +110,26 @@ const DateAvailableScreen = () => {
 
   const checkNurseTime = async () => {
     try {
-      const nursesDates = dates.map((date, index) => {
-        if (!nurseInfo) {
+      const nursesDates = dates
+        .map((date, index) => {
+          if (!nurseInfo) {
+            return {
+              "est-start-date": formatDateForApi(date),
+              "nurse-id": null,
+              "nurse-name": null,
+            };
+          }
+          const selectedNurse = listNurseData.find(
+            (nurse) => nurse["nurse-name"] === nurseNames[index]
+          );
           return {
             "est-start-date": formatDateForApi(date),
-            "nurse-id": null,
-            "nurse-name": null,
+            "nurse-id":
+              selectedNurse?.["nurse-id"] || nurseData?.["nurse-id"] || null,
+            "est-duration": Number(totalDuration),
           };
-        }
-        const selectedNurse = listNurseData.find(
-          (nurse) => nurse["nurse-name"] === nurseNames[index]
-        );
-        return {
-          "est-start-date": formatDateForApi(date),
-          "nurse-id": selectedNurse?.["nurse-id"] || nurseData?.["nurse-id"] || null,
-          "est-duration": Number(totalDuration),
-        };
-      }).filter((item) => item["est-start-date"]); // Filter out invalid dates
+        })
+        .filter((item) => item["est-start-date"]); // Filter out invalid dates
 
       if (nursesDates.length === 0) {
         console.warn("No valid dates to check nurse time");
@@ -351,7 +360,10 @@ const DateAvailableScreen = () => {
       setNurseModalVisible(true);
     } catch (error) {
       console.error("Error opening nurse modal:", error);
-      Alert.alert("Lỗi", "Không thể tải danh sách điều dưỡng. Vui lòng thử lại.");
+      Alert.alert(
+        "Lỗi",
+        "Không thể tải danh sách điều dưỡng. Vui lòng thử lại."
+      );
     }
   };
 
@@ -398,22 +410,25 @@ const DateAvailableScreen = () => {
         return;
       }
 
-      const appointmentData = dates.map((date, index) => {
-        if (!nurseInfo) {
+      const appointmentData = dates
+        .map((date, index) => {
+          if (!nurseInfo) {
+            return {
+              date: formatDateForApi(date),
+              "nursing-id": null,
+            };
+          }
+          const selectedNurse = listNurseData.find(
+            (nurse) => nurse["nurse-name"] === nurseNames[index]
+          );
           return {
             date: formatDateForApi(date),
-            "nursing-id": null,
+            "nursing-id":
+              selectedNurse?.["nurse-id"] || nurseData?.["nurse-id"] || null,
+            "nurse-name": nurseNames[index],
           };
-        }
-        const selectedNurse = listNurseData.find(
-          (nurse) => nurse["nurse-name"] === nurseNames[index]
-        );
-        return {
-          date: formatDateForApi(date),
-          "nursing-id": selectedNurse?.["nurse-id"] || nurseData?.["nurse-id"] || null,
-          "nurse-name": nurseNames[index],
-        };
-      }).filter((item) => item.date); // Filter out invalid dates
+        })
+        .filter((item) => item.date); // Filter out invalid dates
 
       if (appointmentData.length === 0) {
         Alert.alert("Lỗi", "Không có ngày hợp lệ để xác nhận.");
@@ -616,6 +631,7 @@ const DateAvailableScreen = () => {
               </Text>
               <FlatList
                 data={listNurseData}
+                removeClippedSubviews={false}
                 keyExtractor={(item) => item["nurse-id"]}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => {
