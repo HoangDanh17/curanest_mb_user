@@ -14,7 +14,7 @@ import { AppointmentProps } from "@/components/appointment/UpcomingScreen";
 import AppointmentCard from "@/components/AppointmentCard";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 
-const CompletedScreen = ({ appointment }: AppointmentProps) => {
+const CompletedScreen = ({ appointment, selectName }: AppointmentProps) => {
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<
     string | null
@@ -93,6 +93,7 @@ const CompletedScreen = ({ appointment }: AppointmentProps) => {
               nurseId={item["nursing-id"]}
               patientId={item["patient-id"]}
               duration={item["total-est-duration"]}
+              selectName={String(selectName)}
             />
             {item.status === "success" && (
               <TouchableOpacity

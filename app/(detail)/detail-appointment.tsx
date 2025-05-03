@@ -5,27 +5,95 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  TextInput,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import HeaderBack from "@/components/HeaderBack";
 import { router, useLocalSearchParams } from "expo-router";
 import appointmentApiRequest from "@/app/api/appointmentApi";
-import { AppointmentDetail } from "@/types/appointment";
-import { DetailNurse } from "@/types/nurse";
+import { AppointmentDetail, GetReport } from "@/types/appointment";
+import { DetailNurse, FeedbackType } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
 import invoiceApiRequest from "@/app/api/invoiceApi";
 import { addMinutes, format, parseISO } from "date-fns";
 import { WebView } from "react-native-webview";
 import { URL } from "react-native-url-polyfill";
+import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 
 const DetailAppointmentScreen = () => {
-  const { id, packageId, nurseId, date, status, actTime } =
-    useLocalSearchParams();
+  const {
+    id,
+    packageId,
+    nurseId,
+    date,
+    status,
+    actTime,
+    selectName,
+  } = useLocalSearchParams();
   const [appointments, setAppointments] = useState<AppointmentDetail>();
   const [detailNurseData, setDetailNurseData] = useState<DetailNurse>();
   const [paymentUrl, setPaymentUrl] = useState("");
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [medicalReport, setMedicalReport] = useState<GetReport>();
+  const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false);
+  const [feedbackContent, setFeedbackContent] = useState("");
+  const [feedbackRate, setFeedbackRate] = useState(0);
+  const [feedbackData, setFeedbackData] = useState<FeedbackType | null>(null);
+  const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
+  const [isMedicalReportLoading, setIsMedicalReportLoading] = useState(true);
+
+  async function fetchMedicalRecord() {
+    try {
+      setIsMedicalReportLoading(true);
+      const response = await appointmentApiRequest.getMedicalReport(String(id));
+      setMedicalReport(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching medical report:", error);
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không thể tải báo cáo y tế!",
+        position: "top",
+      });
+    } finally {
+      setIsMedicalReportLoading(false);
+    }
+  }
+
+  async function fetchFeedback(medicalId: string) {
+    try {
+      setIsFeedbackLoading(true);
+      const response = await nurseApiRequest.getFeedback(medicalId);
+      const data = response.payload.data;
+      if (Object.keys(data).length === 0) {
+        setFeedbackData(null);
+        setFeedbackContent("");
+        setFeedbackRate(0);
+      } else {
+        setFeedbackData(data);
+        setFeedbackContent(data.content || "");
+        setFeedbackRate(parseInt(data.star, 10) || 0);
+      }
+    } catch (error) {
+      setFeedbackData(null);
+      setFeedbackContent("");
+      setFeedbackRate(0);
+    } finally {
+      setIsFeedbackLoading(false);
+    }
+  }
+
+  const areAllTasksDone = () => {
+    if (!appointments?.tasks || appointments.tasks.length === 0) {
+      return false;
+    }
+    return appointments.tasks.every((task) => task.status === "done");
+  };
 
   async function fetchAppointmentDetail() {
     try {
@@ -44,7 +112,7 @@ const DetailAppointmentScreen = () => {
 
   async function fetchNurseInfo() {
     try {
-      if (!nurseId) return; // Silently skip if no nurseId
+      if (!nurseId) return;
       const response = await nurseApiRequest.getDetailNurse(String(nurseId));
       if (response.payload?.data) {
         setDetailNurseData(response.payload.data);
@@ -82,18 +150,113 @@ const DetailAppointmentScreen = () => {
     ) {
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
+      const responseCancel = parsedUrl.searchParams.get("cancel");
 
-      if (responseCode === "00") {
-        setPaymentUrl("");
-        router.replace("/(tabs)/schedule");
+      if (responseCode === "00" && responseCancel !== "true") {
+        setIsSuccess(true);
+        setIsModalVisible(true);
       } else {
-        setPaymentUrl("");
+        setIsSuccess(false);
+        setIsModalVisible(true);
       }
     }
   };
 
+  const handleGoHome = () => {
+    setIsModalVisible(false);
+    router.push("/(tabs)/schedule");
+  };
+
+  const handleAddTask = (appointments: AppointmentDetail | undefined) => {
+    router.push({
+      pathname: "/additional-task",
+      params: {
+        id: String(id),
+        appointments: JSON.stringify(appointments),
+        serviceId: String(packageId),
+        name: String(appointments?.package.name),
+      },
+    });
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    router.push("/(tabs)/home");
+  };
+
+  const handleFeedbackSubmit = async () => {
+    if (feedbackRate === 0 || !feedbackContent.trim()) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Vui lòng nhập nội dung và chọn số sao!",
+        position: "top",
+      });
+      return;
+    }
+    if (!medicalReport?.id) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không tìm thấy ID báo cáo y tế!",
+        position: "top",
+      });
+      return;
+    }
+    try {
+      const body: FeedbackType = {
+        content: feedbackContent,
+        "medical-record-id": String(medicalReport.id),
+        "nurse-id": String(nurseId),
+        "patient-name": String(selectName),
+        service: String(appointments?.package.name),
+        star: String(feedbackRate),
+      };
+      await nurseApiRequest.submitFeedback(body);
+      Toast.show({
+        type: "success",
+        text1: "Thành công",
+        text2: feedbackData
+          ? "Đánh giá của bạn đã được cập nhật!"
+          : "Đánh giá của bạn đã được gửi!",
+        position: "top",
+      });
+      setFeedbackContent("");
+      setFeedbackRate(0);
+      setIsFeedbackModalVisible(false);
+      if (medicalReport.id) {
+        await fetchFeedback(String(medicalReport.id));
+      }
+    } catch (error) {
+      console.error("Error submitting/updating feedback:", error);
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không thể gửi/cập nhật đánh giá. Vui lòng thử lại!",
+        position: "top",
+      });
+    }
+  };
+
+  const renderStars = () => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <TouchableOpacity key={i} onPress={() => setFeedbackRate(i)}>
+          <Ionicons
+            name={i <= feedbackRate ? "star" : "star-outline"}
+            size={30}
+            color={i <= feedbackRate ? "#FFD700" : "#A0A0A0"}
+          />
+        </TouchableOpacity>
+      );
+    }
+    return stars;
+  };
+
   useEffect(() => {
     fetchAppointmentDetail();
+    fetchMedicalRecord();
     if (nurseId) {
       fetchNurseInfo();
     }
@@ -101,17 +264,17 @@ const DetailAppointmentScreen = () => {
 
   const getStatusStyle = (status: string) => {
     switch (status) {
-      case "waiting":
+      case "upcoming":
         return {
           backgroundColor: "bg-amber-100",
           textColor: "text-amber-800",
-          text: "Chờ xác nhận",
+          text: "Sắp tới",
         };
-      case "confirmed":
+      case "waiting":
         return {
           backgroundColor: "bg-indigo-100",
           textColor: "text-indigo-800",
-          text: "Đã xác nhận",
+          text: "Chờ xác nhận",
         };
       case "success":
         return {
@@ -119,11 +282,11 @@ const DetailAppointmentScreen = () => {
           textColor: "text-emerald-800",
           text: "Hoàn thành",
         };
-      case "refused":
+      case "confirmed":
         return {
-          backgroundColor: "bg-red-100",
-          textColor: "text-red-800",
-          text: "Từ chối chuyển",
+          backgroundColor: "bg-sky-100",
+          textColor: "text-sky-800",
+          text: "Đã xác nhận",
         };
       default:
         return {
@@ -164,7 +327,7 @@ const DetailAppointmentScreen = () => {
     if (!date || typeof date !== "string") return "Không xác định";
     try {
       const endTime = addMinutes(new Date(date), totalDuration);
-      return format(endTime, "HH:mm a");
+      return format(endTime, "hh:mm a");
     } catch (error) {
       console.error("Error calculating end time:", error);
       return "Không xác định";
@@ -180,6 +343,25 @@ const DetailAppointmentScreen = () => {
         listTask: JSON.stringify(appointments.tasks),
       },
     });
+  };
+
+  const handleOpenFeedbackModal = async () => {
+    if (medicalReport?.id) {
+      await fetchFeedback(String(medicalReport.id));
+    } else {
+      setFeedbackData(null);
+      setFeedbackContent("");
+      setFeedbackRate(0);
+      if (!medicalReport?.id) {
+        Toast.show({
+          type: "error",
+          text1: "Lỗi",
+          text2: "Báo cáo y tế không khả dụng!",
+          position: "top",
+        });
+      }
+    }
+    setIsFeedbackModalVisible(true);
   };
 
   if (paymentUrl) {
@@ -217,7 +399,7 @@ const DetailAppointmentScreen = () => {
                   "https://chuphinhthe.com/upload/product/4709-tam-8496.jpg",
               }}
               className="w-36 h-36 border-4 border-gray-200"
-              borderRadius={99999}
+              borderRadius={9999}
             />
           ) : (
             <Image
@@ -227,7 +409,7 @@ const DetailAppointmentScreen = () => {
                   "https://www.nursetogether.com/wp-content/uploads/2024/09/Registered-Nurse-Illustration-transparent.png",
               }}
               className="w-36 h-36 border-4 border-gray-200"
-              borderRadius={99999}
+              borderRadius={9999}
             />
           )}
           {detailNurseData && (
@@ -327,7 +509,9 @@ const DetailAppointmentScreen = () => {
               <Text className="font-psemibold text-gray-700">
                 Thời gian đến:
               </Text>
-              <Text className="text-gray-500 font-pmedium">{formattedActTime}</Text>
+              <Text className="text-gray-500 font-pmedium">
+                {formattedActTime}
+              </Text>
             </View>
             <View className="flex-row justify-between items-center border-b border-gray-200 pb-2">
               <Text className="font-psemibold text-gray-700">
@@ -365,7 +549,7 @@ const DetailAppointmentScreen = () => {
             </View>
             {appointments?.package?.["payment-status"] === "unpaid" && (
               <TouchableOpacity
-                className="px-6 py-4 rounded-lg bg-[#1f1f1fe3] "
+                className="px-6 py-4 rounded-lg bg-[#1f1f1fe3]"
                 onPress={handlePayment}
                 disabled={isLoadingPayment}
               >
@@ -392,23 +576,37 @@ const DetailAppointmentScreen = () => {
                 {appointments?.tasks && appointments.tasks.length > 0 ? (
                   appointments.tasks.map((service, index) => (
                     <View
-                      key={service.id || index}
+                      key={service.id}
                       className="p-3 border-b border-gray-200"
                     >
                       <Text className="text-gray-700 font-pbold break-words">
-                        {index + 1}. {service.name || "Không có tên"}
+                        {index + 1}. {service.name}
                       </Text>
                       <View className="flex-row flex-wrap justify-between">
                         <Text className="text-gray-500 break-words">
-                          Thời gian: {service["est-duration"] || 0} phút
+                          Thời gian: {service["est-duration"]} phút
                         </Text>
                         <Text className="text-gray-500 break-words">
-                          x{service["total-unit"] || 0} lần
+                          x{service["total-unit"]} lần
                         </Text>
                       </View>
                       <Text className="text-gray-500 break-words">
-                        Ghi chú: {service["client-note"] || "Không có ghi chú"}
+                        Ghi chú:{" "}
+                        {service["client-note"].length > 0
+                          ? service["client-note"]
+                          : "Không có ghi chú"}
                       </Text>
+                      <View className="flex-row items-center">
+                        <Text className="text-gray-500 break-words">
+                          Trạng thái:{" "}
+                          {service.status === "done"
+                            ? "Hoàn thành"
+                            : "Chưa hoàn thành"}
+                        </Text>
+                        {service.status === "done" && (
+                          <Text className="ml-2 text-green-500">✔</Text>
+                        )}
+                      </View>
                     </View>
                   ))
                 ) : (
@@ -419,28 +617,44 @@ const DetailAppointmentScreen = () => {
               </View>
             </View>
 
-            <View className="mt-4">
-              <Text className="font-psemibold text-gray-700">
-                Tổng chi phí:{" "}
-                <Text className="text-blue-600 break-words">
+            <View className="mt-4 mx-2">
+              <View className="flex-row justify-between items-center">
+                <Text className="font-psemibold text-gray-700">
+                  Tổng chi phí:
+                </Text>
+                <Text className="font-psemibold text-blue-600 break-words">
                   {appointments?.package?.["total-fee"]?.toLocaleString() ||
-                    "0"}{" "}
+                    "0"}
                   VND
                 </Text>
-              </Text>
-              <Text className="font-psemibold text-gray-700">
-                Tổng thời gian:{" "}
-                <Text className="text-blue-600 break-words">
+              </View>
+              <View className="flex-row justify-between items-center">
+                <Text className="font-psemibold text-gray-700">
+                  Tổng thời gian:
+                </Text>
+                <Text className="font-psemibold text-blue-600 break-words">
                   {totalDuration} phút
                 </Text>
-              </Text>
+              </View>
             </View>
+            {status !== "success" && (
+              <TouchableOpacity
+                className="mt-4 px-6 py-4 rounded-lg bg-teal-500 border shadow-2xl"
+                onPress={() => handleAddTask(appointments)}
+              >
+                <Text className="text-white font-pbold text-center">
+                  Thêm task mới
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        <View className="mt-4  items-center justify-center">
+        <View className="mt-4 items-center justify-center">
           <TouchableOpacity
-            className="px-6 py-4 rounded-lg bg-[#64CBDB] w-[90%]"
+            className={`flex-1 w-full px-6 py-4 rounded-lg ${
+              areAllTasksDone() ? "bg-green-500" : "bg-[#64CBDB]"
+            }`}
             onPress={handleViewReport}
           >
             <Text className="text-white font-pmedium text-center">
@@ -454,10 +668,126 @@ const DetailAppointmentScreen = () => {
             Lời khuyên từ điều dưỡng
           </Text>
           <View className="space-y-4 gap-2">
-            <Text>Chú ý hơn trong việc kiểm tra sức khỏe</Text>
+            <Text>
+              {medicalReport && medicalReport?.["nursing-report"] !== ""
+                ? medicalReport?.["nursing-report"]
+                : "Chưa có báo cáo"}
+            </Text>
           </View>
+          {status === "success" && (
+            <TouchableOpacity
+              className="mt-4 px-6 py-4 rounded-lg bg-sky-400 border shadow-2xl"
+              onPress={handleOpenFeedbackModal}
+              disabled={isMedicalReportLoading}
+            >
+              <Text className="text-white font-pbold text-center">
+                ⭐ Gửi đánh giá
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View className="mb-20"></View>
+
+        <Modal visible={isModalVisible} transparent={true} animationType="fade">
+          <View className="flex-1 justify-center items-center bg-black/50">
+            <View className="bg-white p-6 rounded-lg w-[90%]">
+              <Image
+                source={{
+                  uri: isSuccess
+                    ? "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s"
+                    : "https://cdn-icons-png.flaticon.com/512/6659/6659895.png",
+                }}
+                className="w-32 h-32 mx-auto mb-4 bg-white"
+              />
+              <Text className="text-xl font-pbold text-center mb-4">
+                {isSuccess ? "Thành công!" : "Thất bại!"}
+              </Text>
+              <Text className="text-base text-gray-500 text-center mb-6">
+                {isSuccess
+                  ? "Thanh toán đã được thực hiện thành công."
+                  : "Đã có lỗi xảy ra khi thực hiện thanh toán."}
+              </Text>
+              {isSuccess ? (
+                <TouchableOpacity
+                  className="bg-[#64CBDB] py-3 px-6 rounded-lg"
+                  onPress={handleGoHome}
+                >
+                  <Text className="text-white font-pbold text-center">
+                    Về trang chủ
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  className="bg-[#64CBDB] py-3 px-6 rounded-lg"
+                  onPress={handleCloseModal}
+                >
+                  <Text className="text-white font-pbold text-center">
+                    Đóng
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        <Modal
+          visible={isFeedbackModalVisible}
+          transparent={true}
+          animationType="slide"
+        >
+          <View className="flex-1 justify-center items-center bg-black/50">
+            <View className="bg-white p-6 rounded-lg w-[90%]">
+              <Text className="text-xl font-pbold text-center mb-4">
+                {feedbackData ? "Chỉnh sửa đánh giá" : "Gửi đánh giá"}
+              </Text>
+              {isFeedbackLoading ? (
+                <View className="flex justify-center items-center my-4">
+                  <ActivityIndicator size="large" color="#0000ff" />
+                </View>
+              ) : (
+                <>
+                  <Text className="text-base text-gray-500 mb-4">
+                    Vui lòng nhập nội dung và chọn số sao:
+                  </Text>
+                  <View className="flex-row justify-center mb-4">
+                    {renderStars()}
+                  </View>
+                  <TextInput
+                    placeholder="Nhập nội dung đánh giá..."
+                    value={feedbackContent}
+                    onChangeText={setFeedbackContent}
+                    multiline
+                    numberOfLines={4}
+                    className="border rounded-lg p-2 mb-4 h-32 text-gray-700"
+                    style={{ textAlignVertical: "top", textAlign: "left" }}
+                  />
+                  <View className="flex-row justify-between">
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-300 py-3 px-4 rounded-lg mr-2"
+                      onPress={() => {
+                        setFeedbackContent("");
+                        setFeedbackRate(0);
+                        setIsFeedbackModalVisible(false);
+                      }}
+                    >
+                      <Text className="text-gray-800 font-pmedium text-center">
+                        Hủy
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-[#64CBDB] py-3 px-4 rounded-lg ml-2"
+                      onPress={handleFeedbackSubmit}
+                    >
+                      <Text className="text-white font-pmedium text-center">
+                        {feedbackData ? "Cập nhật" : "Gửi"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );

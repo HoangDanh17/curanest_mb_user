@@ -81,6 +81,7 @@ const DetailNurseScreen = () => {
       pathname: "/detail-schedule",
       params: {
         id: String(id),
+        idNurse: String(idNurse),
         selectedDate: date.toISOString(),
       },
     });

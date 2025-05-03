@@ -23,7 +23,7 @@ export default function Schedule() {
   const [appointmentsWithNurse, setAppointmentsWithNurse] = useState<
     AppointmentListNurse[]
   >([]);
-
+  const [selectName, setSelectName] = useState<string | null>();
   async function fetchPatientList() {
     try {
       const response = await patientApiRequest.getAllPatient();
@@ -124,6 +124,7 @@ export default function Schedule() {
                 }`}
                 onPress={() => {
                   setSelectedProfile(patient.id);
+                  setSelectName(patient["full-name"]);
                 }}
               >
                 <Image
@@ -167,7 +168,12 @@ export default function Schedule() {
               tabBarActiveTintColor: "#FFAD60",
             }}
           >
-            {() => <UpcomingScreen appointment={upcomingAppointments} />}
+            {() => (
+              <UpcomingScreen
+                appointment={upcomingAppointments}
+                selectName={String(selectName)}
+              />
+            )}
           </Tab.Screen>
           <Tab.Screen
             name="InProgress"
@@ -176,7 +182,12 @@ export default function Schedule() {
               tabBarIndicatorStyle: { backgroundColor: "#4B70F5" },
             }}
           >
-            {() => <InProgressScreen appointment={inProgressAppointments} />}
+            {() => (
+              <InProgressScreen
+                appointment={inProgressAppointments}
+                selectName={String(selectName)}
+              />
+            )}
           </Tab.Screen>
           <Tab.Screen
             name="Completed"
@@ -186,7 +197,12 @@ export default function Schedule() {
               tabBarActiveTintColor: "#00FF9C",
             }}
           >
-            {() => <CompletedScreen appointment={completedAppointments} />}
+            {() => (
+              <CompletedScreen
+                appointment={completedAppointments}
+                selectName={String(selectName)}
+              />
+            )}
           </Tab.Screen>
         </Tab.Navigator>
       ) : (

@@ -4,7 +4,7 @@ import AppointmentCard from "@/components/AppointmentCard";
 import { AppointmentProps } from "@/components/appointment/UpcomingScreen";
 import { Image } from "react-native";
 
-const InProgressScreen = ({ appointment }: AppointmentProps) => {
+const InProgressScreen = ({ appointment,selectName }: AppointmentProps) => {
   const sortedAppointments = [...appointment].sort((a, b) => {
     const dateA = new Date(a["est-date"]).getTime();
     const dateB = new Date(b["est-date"]).getTime();
@@ -32,6 +32,7 @@ const InProgressScreen = ({ appointment }: AppointmentProps) => {
               nurseId={item["nursing-id"]}
               actTime={item["act-date"]}
               patientId={item["patient-id"]}
+              selectName={String(selectName)}
               duration={item["total-est-duration"]}
             />
           </Animated.View>

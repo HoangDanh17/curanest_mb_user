@@ -4,10 +4,12 @@ import {
   AppointmentListRes,
   CreateAppointment,
   CreateAppointmentRes,
+  GetReportRes,
+  NurseScheduleRes,
   NurseTimeRes,
 } from "@/types/appointment";
+import { InvoiceListRes } from "@/types/invoice";
 import { CheckTimeNurseRes, ListNurseDataRes } from "@/types/nurse";
-import { CreatePatientRes } from "@/types/patient";
 
 const appointmentApiRequest = {
   createAppointment: (body: CreateAppointment) =>
@@ -44,6 +46,21 @@ const appointmentApiRequest = {
     http.get<ListNurseDataRes>(
       `appointments/nursing-available?service-id=${serviceId}&est-date=${date}&est-duration=${duration}`,
       { apiPrefix: "appointment" }
+    ),
+  getMedicalReport: (id: string) =>
+    http.get<GetReportRes>(`medical-record/${id}`, {
+      apiPrefix: "appointment",
+    }),
+  getInvoiceList: (body: { "patient-ids": string[] }) =>
+    http.post<InvoiceListRes>("invoices/patient", body, {
+      apiPrefix: "appointment",
+    }),
+  getNurseDate: (id: string, dateFrom: string, dateTo: string) =>
+    http.get<NurseScheduleRes>(
+      `appointments/nursing-timesheet?nursing-id=${id}&est-date-from=${dateFrom}&est-date-to=${dateTo}`,
+      {
+        apiPrefix: "appointment",
+      }
     ),
 };
 

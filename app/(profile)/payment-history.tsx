@@ -1,200 +1,227 @@
-import React, { useState } from 'react';
-import { View, ScrollView, Text, ActivityIndicator } from 'react-native';
-import { Dropdown } from 'react-native-element-dropdown';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  ScrollView,
+  Text,
+  ActivityIndicator,
+  Pressable,
+  Platform,
+} from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Patient } from "@/types/patient";
+import patientApiRequest from "@/app/api/patientApi";
+import appointmentApiRequest from "@/app/api/appointmentApi";
+import { InvoiceList } from "@/types/invoice";
+import { format, isSameDay } from "date-fns";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
-// Data mẫu
-const salaryData = [
-  {
-    id: 1,
-    month: 1,
-    year: 2025,
-    datetime: '8:00 08/01/2025',
-    amount: 15000000,
-    iconBgColor: '#e3f2fd'
+// Định nghĩa style cho trạng thái
+const STATUS_STYLES: Record<
+  string,
+  { textColor: string; backgroundColor: string; label: string }
+> = {
+  paid: {
+    textColor: "text-emerald-800",
+    backgroundColor: "bg-emerald-100",
+    label: "Đã thanh toán",
   },
-  {
-    id: 2,
-    month: 12,
-    year: 2024,
-    datetime: '8:00 05/12/2024',
-    amount: 15000000,
-    iconBgColor: '#f3e5f5'
+  unpaid: {
+    textColor: "text-amber-800",
+    backgroundColor: "bg-amber-100",
+    label: "Chưa thanh toán",
   },
-  {
-    id: 3,
-    month: 11,
-    year: 2024,
-    datetime: '8:00 05/11/2024',
-    amount: 14500000,
-    iconBgColor: '#e8f5e9'
-  }
-];
-
-// Tạo options cho dropdown
-const getYearOptions = () => {
-  const currentYear = new Date().getFullYear();
-  const years = [];
-  for (let i = currentYear - 2; i <= currentYear; i++) {
-    years.push({ label: `Năm ${i}`, value: i });
-  }
-  return [{ label: 'Tất cả các năm', value: null }, ...years];
 };
 
-const monthOptions = [
-  { label: 'Tất cả các tháng', value: null },
-  { label: 'Tháng 1', value: 1 },
-  { label: 'Tháng 2', value: 2 },
-  { label: 'Tháng 3', value: 3 },
-  { label: 'Tháng 4', value: 4 },
-  { label: 'Tháng 5', value: 5 },
-  { label: 'Tháng 6', value: 6 },
-  { label: 'Tháng 7', value: 7 },
-  { label: 'Tháng 8', value: 8 },
-  { label: 'Tháng 9', value: 9 },
-  { label: 'Tháng 10', value: 10 },
-  { label: 'Tháng 11', value: 11 },
-  { label: 'Tháng 12', value: 12 },
-];
-
 const PaymentHistoryScreen = () => {
-  const [selectedMonth, setSelectedMonth] = useState<{ label: string; value: number | null } | null>(null);
-  const [selectedYear, setSelectedYear] = useState<{ label: string; value: number | null } | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [patientList, setPatientList] = useState<Patient[]>([]);
+  const [invoiceList, setInvoiceList] = useState<InvoiceList[]>([]);
+
+  async function fetchPatientList() {
+    try {
+      setIsLoading(true);
+      const response = await patientApiRequest.getAllPatient();
+      setPatientList(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function fetchInvoiceList() {
+    try {
+      setIsLoading(true);
+      const patientIds = patientList.map((patient) => patient.id);
+      const body = {
+        "patient-ids": patientIds.length > 0 ? patientIds : ["123"],
+      };
+      const response = await appointmentApiRequest.getInvoiceList(body);
+      setInvoiceList(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching invoice list:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchPatientList();
+  }, []);
+
+  useEffect(() => {
+    if (patientList.length > 0) {
+      fetchInvoiceList();
+    }
+  }, [patientList]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(amount);
   };
 
-  const handleFilter = (type: 'month' | 'year', item: { label: string; value: number | null }) => {
-    setIsLoading(true);
-    if (type === 'month') {
-      setSelectedMonth(item);
-    } else {
-      setSelectedYear(item);
-    }
-    
-    // Giả lập delay khi lọc
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 500);
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, "HH:mm dd/MM/yyyy");
   };
 
-  // Lọc data dựa trên month và year được chọn
-  const filteredData = salaryData.filter((item) => {
-    const monthMatch = !selectedMonth?.value || item.month === selectedMonth.value;
-    const yearMatch = !selectedYear?.value || item.year === selectedYear.value;
-    return monthMatch && yearMatch;
+  // Xử lý khi chọn ngày từ date picker
+  const handleDateChange = (event: any, selected: Date | undefined) => {
+    setShowDatePicker(Platform.OS === "ios");
+    if (event.type === "dismissed" || !selected) {
+      return;
+    }
+    setSelectedDate(selected);
+  };
+
+  // Xóa ngày đã chọn
+  const clearDate = () => {
+    setSelectedDate(null);
+  };
+
+  // Format ngày hiển thị
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Tìm theo ngày";
+    return date.toLocaleDateString("vi-VN");
+  };
+
+  // Xử lý khi nhấn nút chọn ngày
+  const handleShowDatePicker = () => {
+    setShowDatePicker(true);
+  };
+
+  const filteredData = invoiceList.filter((item) => {
+    const invoiceDate = new Date(item["created-at"]); // Điều chỉnh +7 tiếng
+    return !selectedDate || isSameDay(invoiceDate, selectedDate);
   });
 
-  // Style chung cho dropdown
-  const dropdownStyle = {
+  const buttonStyle = {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: 'white',
+    backgroundColor: "white",
   };
 
   return (
     <View className="flex-1 bg-gray-100">
-      {/* Filter Section */}
-      <View className="p-4 flex-row justify-between">
-        <View className="w-[48%]">
-          <Dropdown
-            data={monthOptions}
-            labelField="label"
-            valueField="value"
-            placeholder="Tháng"
-            value={selectedMonth}
-            onChange={(item) => handleFilter('month', item)}
-            style={dropdownStyle}
-            placeholderStyle={{ color: '#999' }}
-            selectedTextStyle={{ color: '#000' }}
-            containerStyle={{ borderRadius: 8 }}
-            renderLeftIcon={() => (
-              <MaterialIcons 
-                name="date-range" 
-                size={20} 
-                color="#666"
-                style={{ marginRight: 8 }}
-              />
-            )}
-          />
-        </View>
-        
-        <View className="w-[48%]">
-          <Dropdown
-            data={getYearOptions()}
-            labelField="label"
-            valueField="value"
-            placeholder="Năm"
-            value={selectedYear}
-            onChange={(item) => handleFilter('year', item)}
-            style={dropdownStyle}
-            placeholderStyle={{ color: '#999' }}
-            selectedTextStyle={{ color: '#000' }}
-            containerStyle={{ borderRadius: 8 }}
-            renderLeftIcon={() => (
-              <MaterialIcons 
-                name="calendar-today" 
-                size={20} 
-                color="#666"
-                style={{ marginRight: 8 }}
-              />
-            )}
-          />
+      <View className="p-4">
+        <View className="flex-row justify-end gap-2">
+          <Pressable style={buttonStyle} onPress={handleShowDatePicker}>
+            <Text className="text-sm text-gray-800">
+              {formatDate(selectedDate)}
+            </Text>
+          </Pressable>
+          {selectedDate && (
+            <Pressable style={buttonStyle} onPress={clearDate}>
+              <Text className="text-sm text-gray-800">Xóa ngày</Text>
+            </Pressable>
+          )}
         </View>
       </View>
 
-      {/* Loading Indicator */}
+      {showDatePicker && (
+        <View className="w-4/5 self-center">
+          <DateTimePicker
+            value={selectedDate || new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "calendar"}
+            onChange={handleDateChange}
+          />
+        </View>
+      )}
+
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#1976d2" />
         </View>
       ) : (
-        <ScrollView className="p-4">
+        <ScrollView className="p-4" showsVerticalScrollIndicator={false}>
           {filteredData.length === 0 ? (
             <View className="flex justify-center items-center py-8">
               <MaterialIcons name="search-off" size={48} color="#666" />
               <Text className="text-gray-500 text-lg mt-2">
-                Không có dữ liệu lương cho thời gian đã chọn
+                Không có dữ liệu hóa đơn cho ngày đã chọn
               </Text>
             </View>
           ) : (
-            filteredData.map((salary) => (
-              <View 
-                key={salary.id} 
+            filteredData.map((invoice) => (
+              <View
+                key={invoice.id}
                 className="bg-white rounded-xl p-4 mb-4 shadow-sm"
               >
                 <View className="flex-row items-center">
-                  <View 
-                    className="w-12 h-12 rounded-full justify-center items-center mr-4"
-                    style={{ backgroundColor: salary.iconBgColor }}
+                  <View
+                    className={`w-12 h-12 rounded-full justify-center items-center mr-4 ${
+                      STATUS_STYLES[invoice.status]?.backgroundColor ||
+                      "bg-gray-100"
+                    }`}
                   >
-                    <MaterialIcons name="attach-money" size={24} color="#1976d2" />
+                    <MaterialIcons
+                      name="attach-money"
+                      size={24}
+                      color={
+                        STATUS_STYLES[invoice.status]?.textColor
+                          ?.replace("text-", "")
+                          ?.replace("-800", "-600") || "#1976d2"
+                      }
+                    />
                   </View>
 
                   <View className="flex-1">
-                    <Text className="text-md font-bold text-gray-800">
-                      Tháng {salary.month}/{salary.year}
-                    </Text>
-                    
+                    <View className="flex w-auto items-start">
+                      <Text
+                        className={`text-md font-bold inline-flex items-center p-2 px-4 rounded-full ${
+                          STATUS_STYLES[invoice.status]?.textColor ||
+                          "text-gray-800"
+                        } ${
+                          STATUS_STYLES[invoice.status]?.backgroundColor ||
+                          "bg-gray-100"
+                        }`}
+                      >
+                        {STATUS_STYLES[invoice.status]?.label || invoice.status}
+                      </Text>
+                    </View>
                     <View className="flex-row items-center mt-1">
-                      <MaterialIcons name="access-time" size={16} color="#666" />
-                      <Text className="ml-2 text-gray-600 text-sm">
-                        {salary.datetime}
+                      <MaterialIcons
+                        name="access-time"
+                        size={16}
+                        color="#666"
+                      />
+                      <Text className="ml-2 text-gray-800 font-pbold text-sm">
+                        {formatDateTime(invoice["created-at"])}
                       </Text>
                     </View>
                   </View>
 
                   <View>
                     <Text className="text-md font-bold text-blue-600">
-                      + {formatCurrency(salary.amount)}
+                      + {formatCurrency(invoice["total-fee"])}
                     </Text>
                   </View>
                 </View>

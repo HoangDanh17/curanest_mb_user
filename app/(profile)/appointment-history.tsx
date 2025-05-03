@@ -175,7 +175,7 @@ const AppointmentHistoryScreen = () => {
       {/* Date Picker */}
       {showDatePicker && selectedProfile && (
         <View className="w-4/5 self-center">
-          <DateTimePicker
+          <DateTimePicker 
             value={selectedDate || new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "inline" : "calendar"}

@@ -72,6 +72,7 @@ const AppointmentCard = ({
   patientId,
   duration,
   actTime,
+  selectName,
 }: AppointmentCardProps) => {
   const statusStyle = STATUS_STYLES[status] || DEFAULT_STATUS_STYLE;
   const formattedDate = format(time, "dd/MM/yyyy");
@@ -88,6 +89,7 @@ const AppointmentCard = ({
         date: time,
         status: status,
         actTime: actTime,
+        selectName: selectName,
       },
     });
   };

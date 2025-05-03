@@ -34,9 +34,10 @@ const COLOR_MAP: Record<string, string> = {
 
 export interface AppointmentProps {
   appointment: AppointmentListNurse[];
+  selectName: string;
 }
 
-const UpcomingScreen = ({ appointment }: AppointmentProps) => {
+const UpcomingScreen = ({ appointment, selectName }: AppointmentProps) => {
   const sortAppointmentsByDate = (appointments: AppointmentListNurse[]) => {
     return [...appointments].sort((a, b) => {
       const dateA = new Date(a["est-date"]).getTime();
@@ -89,6 +90,7 @@ const UpcomingScreen = ({ appointment }: AppointmentProps) => {
             actTime={item["act-date"]}
             duration={item["total-est-duration"]}
             status={item.status}
+            selectName={String(selectName)}
           />
         )}
         renderSectionHeader={({ section: { title } }) => {

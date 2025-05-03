@@ -138,8 +138,6 @@ const ConfirmScreen = () => {
         "total-unit": service.totalUnit,
       })),
     };
-
-    console.log("🚀 ~ handleSubmit ~ submitData:", submitData);
     try {
       const response = await appointmentApiRequest.createAppointment(
         submitData

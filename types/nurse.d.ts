@@ -73,3 +73,17 @@ export type CheckTimeNurseRes = {
   status: number;
   data: CheckTimeNurse[];
 };
+
+export type FeedbackType = {
+  content: string;
+  "medical-record-id": string;
+  "nurse-id": string;
+  "patient-name": string;
+  service: string;
+  star: string;
+};
+
+export type FeedbackTypeRes = {
+  status: number;
+  data: FeedbackType;
+};

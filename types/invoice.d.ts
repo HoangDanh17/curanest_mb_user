@@ -13,3 +13,16 @@ export type InvoiceRes = {
   status: number;
   data: Invoice[];
 };
+
+export type InvoiceList = {
+  id: string;
+  "cuspackage-id": string;
+  "total-fee": number;
+  status: string;
+  "created-at": string;
+};
+
+export type InvoiceListRes = {
+  status: number;
+  data: InvoiceList[];
+};

@@ -1,5 +1,6 @@
 import http from "@/lib/http";
-import { DetailNurseRes, ListNurseDataRes } from "@/types/nurse";
+import { CreateAppointmentRes } from "@/types/appointment";
+import { DetailNurseRes, FeedbackType, FeedbackTypeRes, ListNurseDataRes } from "@/types/nurse";
 
 const nurseApiRequest = {
   getListNurse: (
@@ -19,6 +20,14 @@ const nurseApiRequest = {
     }),
   getDetailNurse: (id: string | string[]) =>
     http.get<DetailNurseRes>(`nurses/${id}`, { apiPrefix: "nurse" }),
+  submitFeedback: (body: FeedbackType) =>
+    http.post<CreateAppointmentRes>("feedbacks", body, {
+      apiPrefix: "nurse",
+    }),
+  getFeedback: (id: string) =>
+    http.get<FeedbackTypeRes>(`feedbacks/${id}`, {
+      apiPrefix: "nurse",
+    }),
 };
 
 export default nurseApiRequest;

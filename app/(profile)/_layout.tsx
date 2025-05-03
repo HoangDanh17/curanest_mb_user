@@ -19,7 +19,7 @@ const commonHeaderOptions: NativeStackNavigationOptions = {
 const screenConfigs: Record<string, NativeStackNavigationOptions> = {
   "appointment-history": {
     ...commonHeaderOptions,
-    headerTitle: "Lịch sử cuộc hẹn",
+    headerTitle: "Lịch sử đặt lịch",
   },
   "relatives-profile": {
     ...commonHeaderOptions,
@@ -27,7 +27,7 @@ const screenConfigs: Record<string, NativeStackNavigationOptions> = {
   },
   "payment-history": {
     ...commonHeaderOptions,
-    headerTitle: "Lịch sử nạp tiền",
+    headerTitle: "Lịch sử thanh toán",
   },
 };
 

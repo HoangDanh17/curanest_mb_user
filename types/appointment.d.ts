@@ -26,6 +26,7 @@ export type AppointmentCardProps = {
   duration: number;
   patientId: string;
   actTime: string | null;
+  selectName: string;
 };
 
 export type CreateAppointment = {
@@ -176,4 +177,34 @@ export interface NurseTime {
 export type NurseTimeRes = {
   status: number;
   data: NurseTime[];
+};
+
+export type GetReport = {
+  id: string;
+  "svc-package-id": string;
+  "patient-id": string;
+  "nursing-report": string;
+  "staff-confirmation": string;
+  status: string;
+  "created-at": string;
+};
+
+export type GetReportRes = {
+  status: number;
+  data: GetReport;
+};
+
+export type NurseSchedule = {
+  "appointment-id": string;
+  "patient-id":string;
+  "est-date": string;
+  "est-end-time": string;
+  status: string;
+  "total-est-duration": number;
+  "est-travel-time": number;
+};
+
+export type NurseScheduleRes = {
+  status: number;
+  data: NurseSchedule[];
 };
