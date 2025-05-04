@@ -11,6 +11,7 @@ import {
 import { InvoiceListRes } from "@/types/invoice";
 import { CheckTimeNurseRes, ListNurseDataRes } from "@/types/nurse";
 
+
 const appointmentApiRequest = {
   createAppointment: (body: CreateAppointment) =>
     http.post<CreateAppointmentRes>("cuspackage", body, {
@@ -20,10 +21,15 @@ const appointmentApiRequest = {
     http.get<AppointmentListRes>(`appointments?patient-id=${id}`, {
       apiPrefix: "appointment",
     }),
-  getListAppointmentNurse: (id: string) =>
-    http.get<AppointmentListRes>(`appointments?nurse-id=${id}`, {
-      apiPrefix: "appointment",
-    }),
+  getListAppointmentNurse: (id: string, dateFrom?: string, dateTo?: string) =>
+    http.get<AppointmentListRes>(
+      `appointments?nurse-id=${id}${dateFrom && `&est-date-from=${dateFrom}`}${
+        dateTo && `&est-date-to=${dateTo}`
+      }`,
+      {
+        apiPrefix: "appointment",
+      }
+    ),
   getNurseTime: (nurseId: string, date: string) =>
     http.get<NurseTimeRes>(
       `appointments/nursing-timesheet?nursing-id=${nurseId}&est-date-from=${date}`,
@@ -63,5 +69,6 @@ const appointmentApiRequest = {
       }
     ),
 };
+
 
 export default appointmentApiRequest;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   SafeAreaView,
   TextInput,
   Alert,
+  Modal,
+  FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
@@ -76,7 +79,7 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
   const initialQuantity = service.unit === "time" ? service["est-duration"] : 1;
   const [quantity, setQuantity] = useState(initialQuantity);
 
-  useEffect(() => {
+  React.useEffect(() => {
     animation.value = withDelay(index * 100, withTiming(1, { duration: 500 }));
   }, [animation, index]);
 
@@ -198,60 +201,82 @@ const ServiceItem: React.FC<ServiceItemProps> = ({
 const AdditionalTaskScreen = () => {
   const { id, name, serviceId, day, discount, description } =
     useLocalSearchParams();
-  console.log("🚀 ~ AdditionalTaskScreen ~ serviceId:", serviceId)
-  const [loading, setLoading] = useState<boolean>(true);
   const [services, setServices] = useState<ServiceTask[]>([]);
-  console.log("🚀 ~ AdditionalTaskScreen ~ services:", services)
   const [quantities, setQuantities] = useState<{ [key: string]: number }>({});
   const [notes, setNotes] = useState<{ [key: string]: string }>({});
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [availableTasks, setAvailableTasks] = useState<ServiceTask[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState<boolean>(false);
+  const modalKey = useRef(0); // Ref to generate unique modal keys
 
-  const fetchData = async () => {
-    setLoading(true);
+  // Debug state changes
+  useEffect(() => {
+    console.log("modalVisible changed:", modalVisible);
+    console.log("services changed:", services);
+    console.log("availableTasks changed:", availableTasks);
+  }, [modalVisible, services, availableTasks]);
+
+  const fetchAvailableTasks = async () => {
+    setLoadingTasks(true);
     try {
       const response = await serviceApiRequest.getListServiceTask(serviceId);
       const apiData = response.payload.data;
-      const mappedServices: ServiceTask[] = apiData.map((item: any) => ({
-        id: item.id,
-        "is-must-have": item["is-must-have"],
-        name: item.name,
-        description: item.description,
-        "est-duration": item["est-duration"],
-        cost: item.cost,
-        "additional-cost": item["additional-cost"],
-        unit: item.unit,
-        "price-of-step": item["price-of-step"],
-      }));
-
-      setServices(mappedServices);
-      setQuantities(
-        mappedServices.reduce(
-          (acc, service) => ({
-            ...acc,
-            [service.id]:
-              service.unit === "time" ? service["est-duration"] : 1,
-          }),
-          {} as { [key: string]: number }
-        )
-      );
-      setNotes(
-        mappedServices.reduce(
-          (acc, service) => ({
-            ...acc,
-            [service.id]: "",
-          }),
-          {} as { [key: string]: string }
-        )
-      );
+      console.log("API Response:", apiData);
+      if (!Array.isArray(apiData)) {
+        console.warn("API data is not an array, defaulting to empty array");
+        setAvailableTasks([]);
+        return;
+      }
+      const mappedTasks: ServiceTask[] = apiData
+        .filter((item: any) => !services.some((s) => s.id === item.id))
+        .map((item: any) => ({
+          id: item.id,
+          "is-must-have": false,
+          name: item.name,
+          description: item.description,
+          "est-duration": item["est-duration"],
+          cost: item.cost,
+          "additional-cost": item["additional-cost"],
+          unit: item.unit,
+          "price-of-step": item["price-of-step"],
+        }));
+      console.log("Filtered Tasks:", mappedTasks);
+      setAvailableTasks(mappedTasks);
     } catch (error) {
-      console.error("Error fetching service tasks:", error);
+      console.error("Error fetching available tasks:", error);
+      Alert.alert("Lỗi", "Không thể tải danh sách task. Vui lòng thử lại.");
+      setAvailableTasks([]);
     } finally {
-      setLoading(false);
+      setLoadingTasks(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [serviceId]);
+  const openModal = () => {
+    console.log("Opening modal");
+    modalKey.current += 1; // Increment key for fresh render
+    setModalVisible(true);
+    fetchAvailableTasks();
+  };
+
+  const closeModal = () => {
+    console.log("Closing modal");
+    setModalVisible(false);
+  };
+
+  const handleAddTask = (task: ServiceTask) => {
+    console.log("Adding task:", task);
+    setServices((prev) => {
+      const newServices = [...prev, task];
+      console.log("Updated services:", newServices);
+      return newServices;
+    });
+    setQuantities((prev) => ({
+      ...prev,
+      [task.id]: task.unit === "time" ? task["est-duration"] : 1,
+    }));
+    setNotes((prev) => ({ ...prev, [task.id]: "" }));
+    closeModal(); // Synchronous close after state updates
+  };
 
   const handleQuantityChange = (id: string, newQuantity: number) => {
     setQuantities((prev) => ({ ...prev, [id]: newQuantity }));
@@ -312,6 +337,14 @@ const AdditionalTaskScreen = () => {
   };
 
   const handleSubmit = () => {
+    if (services.length === 0) {
+      Alert.alert(
+        "Thông báo",
+        "Vui lòng thêm ít nhất một task trước khi tiếp tục."
+      );
+      return;
+    }
+
     const {
       totalDuration,
       totalPricePerDay,
@@ -332,8 +365,10 @@ const AdditionalTaskScreen = () => {
         numberOfDays > 1 ? discountedPriceWithDays : discountedPricePerDay,
       services: services.map((service) => {
         const quantity = quantities[service.id] || 1;
-        const { additionalCost, totalCost, duration } =
-          calculateServiceMetrics(service, quantity);
+        const { additionalCost, totalCost, duration } = calculateServiceMetrics(
+          service,
+          quantity
+        );
         return {
           id: service.id,
           name: service.name,
@@ -349,49 +384,7 @@ const AdditionalTaskScreen = () => {
     };
 
     console.log("Package Info:", packageInfo);
-
-    // Commented out router navigation
-    /*
-    if (nurseInfo) {
-      router.push({
-        pathname: "/(create)/date-available",
-        params: {
-          id,
-          day,
-          totalDuration,
-          serviceId,
-          packageInfo: JSON.stringify(packageInfo),
-          timeInter,
-          patient,
-          nurseInfo,
-          discount,
-        },
-      });
-    } else {
-      router.push({
-        pathname: "/(create)/select-type-and-time",
-        params: {
-          id,
-          day,
-          totalDuration,
-          serviceId,
-          packageInfo: JSON.stringify(packageInfo),
-          timeInter,
-          patient,
-          discount,
-        },
-      });
-    }
-    */
   };
-
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-100">
-        <Text className="text-center text-lg">Đang tải...</Text>
-      </SafeAreaView>
-    );
-  }
 
   const {
     totalDuration,
@@ -418,57 +411,71 @@ const AdditionalTaskScreen = () => {
             {description}
           </Text>
         )}
-        {services.map((s, i) => (
-          <ServiceItem
-            key={s.id}
-            service={s}
-            index={i}
-            onDelete={handleDelete}
-            onQuantityChange={handleQuantityChange}
-            onNoteChange={handleNoteChange}
-            note={notes[s.id] || ""}
-          />
-        ))}
-        <View className="mt-5 p-4 bg-white rounded-lg shadow">
-          <View className="flex-row justify-between">
-            <Text className="text-gray-600 font-pbold">Tổng thời gian:</Text>
-            <Text className="text-red-600 font-pbold">
-              {totalDuration} phút
-            </Text>
-          </View>
-          <View className="flex-row justify-between mt-1">
-            <Text className="text-gray-600 font-pbold">
-              Tổng giá {numberOfDays > 1 ? "1 ngày" : ""}:
-            </Text>
-            <View className="flex-col items-end">
-              {hasDiscount && (
-                <Text className="text-gray-500 font-pmedium line-through">
-                  {totalPricePerDay.toLocaleString()} VND
-                </Text>
-              )}
+        {services.length === 0 ? (
+          <Text className="text-gray-600 text-center my-4">
+            Chưa có task nào. Nhấn "Thêm Task" để bắt đầu.
+          </Text>
+        ) : (
+          services.map((s, i) => (
+            <ServiceItem
+              key={s.id}
+              service={s}
+              index={i}
+              onDelete={handleDelete}
+              onQuantityChange={handleQuantityChange}
+              onNoteChange={handleNoteChange}
+              note={notes[s.id] || ""}
+            />
+          ))
+        )}
+        <TouchableOpacity
+          onPress={openModal}
+          className="bg-[#64D1CB] px-6 py-3 rounded-lg items-center mt-5"
+        >
+          <Text className="text-white text-base font-pbold">Thêm Task</Text>
+        </TouchableOpacity>
+        {services.length > 0 && (
+          <View className="mt-5 p-4 bg-white rounded-lg shadow">
+            <View className="flex-row justify-between">
+              <Text className="text-gray-600 font-pbold">Tổng thời gian:</Text>
               <Text className="text-red-600 font-pbold">
-                {discountedPricePerDay.toLocaleString()} VND
+                {totalDuration} phút
               </Text>
             </View>
-          </View>
-          {numberOfDays > 1 && (
             <View className="flex-row justify-between mt-1">
               <Text className="text-gray-600 font-pbold">
-                Tổng giá {numberOfDays} ngày:
+                Tổng giá {numberOfDays > 1 ? "1 ngày" : ""}:
               </Text>
               <View className="flex-col items-end">
                 {hasDiscount && (
                   <Text className="text-gray-500 font-pmedium line-through">
-                    {totalPriceWithDays.toLocaleString()} VND
+                    {totalPricePerDay.toLocaleString()} VND
                   </Text>
                 )}
                 <Text className="text-red-600 font-pbold">
-                  {discountedPriceWithDays.toLocaleString()} VND
+                  {discountedPricePerDay.toLocaleString()} VND
                 </Text>
               </View>
             </View>
-          )}
-        </View>
+            {numberOfDays > 1 && (
+              <View className="flex-row justify-between mt-1">
+                <Text className="text-gray-600 font-pbold">
+                  Tổng giá {numberOfDays} ngày:
+                </Text>
+                <View className="flex-col items-end">
+                  {hasDiscount && (
+                    <Text className="text-gray-500 font-pmedium line-through">
+                      {totalPriceWithDays.toLocaleString()} VND
+                    </Text>
+                  )}
+                  <Text className="text-red-600 font-pbold">
+                    {discountedPriceWithDays.toLocaleString()} VND
+                  </Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
         <TouchableOpacity
           onPress={handleSubmit}
           className="bg-[#64D1CB] px-6 py-3 rounded-lg items-center mt-5"
@@ -476,6 +483,68 @@ const AdditionalTaskScreen = () => {
           <Text className="text-white text-base font-pbold">Tiếp theo</Text>
         </TouchableOpacity>
       </ScrollView>
+      <Modal
+        key={`modal-${modalKey.current}`} // Unique key based on ref
+        animationType="none" // Disable animation to rule out animation bugs
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <View className="bg-white rounded-lg p-5 w-11/12 max-h-3/4">
+            <Text className="text-xl font-pbold text-gray-800 mb-4">
+              Chọn Task
+            </Text>
+            {loadingTasks ? (
+              <View className="p-10 items-center">
+                <ActivityIndicator size="large" color="#64D1CB" />
+                <Text className="text-gray-600 mt-2">
+                  Đang tải danh sách task...
+                </Text>
+              </View>
+            ) : availableTasks.length === 0 ? (
+              <View className="p-10">
+                <Text className="text-gray-600 text-center">
+                  Không có task nào để thêm
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={availableTasks}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => handleAddTask(item)}
+                    className="p-3 border-b border-gray-200"
+                  >
+                    <Text className="text-lg font-pmedium">{item.name}</Text>
+                    {item.description && (
+                      <Text className="text-gray-600">{item.description}</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+                style={{ maxHeight: 300 }}
+                initialNumToRender={10}
+                maxToRenderPerBatch={10}
+                showsVerticalScrollIndicator={true}
+              />
+            )}
+            <TouchableOpacity
+              onPress={closeModal}
+              className="bg-gray-200 px-6 py-3 rounded-lg items-center mt-4"
+            >
+              <Text className="text-gray-800 text-base font-pbold">Đóng</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

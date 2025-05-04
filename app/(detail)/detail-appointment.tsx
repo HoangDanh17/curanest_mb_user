@@ -23,16 +23,10 @@ import { URL } from "react-native-url-polyfill";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
+
 const DetailAppointmentScreen = () => {
-  const {
-    id,
-    packageId,
-    nurseId,
-    date,
-    status,
-    actTime,
-    selectName,
-  } = useLocalSearchParams();
+  const { id, packageId, nurseId, date, status, actTime, selectName } =
+    useLocalSearchParams();
   const [appointments, setAppointments] = useState<AppointmentDetail>();
   const [detailNurseData, setDetailNurseData] = useState<DetailNurse>();
   const [paymentUrl, setPaymentUrl] = useState("");
@@ -46,6 +40,7 @@ const DetailAppointmentScreen = () => {
   const [feedbackData, setFeedbackData] = useState<FeedbackType | null>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [isMedicalReportLoading, setIsMedicalReportLoading] = useState(true);
+
 
   async function fetchMedicalRecord() {
     try {
@@ -64,6 +59,7 @@ const DetailAppointmentScreen = () => {
       setIsMedicalReportLoading(false);
     }
   }
+
 
   async function fetchFeedback(medicalId: string) {
     try {
@@ -88,12 +84,14 @@ const DetailAppointmentScreen = () => {
     }
   }
 
+
   const areAllTasksDone = () => {
     if (!appointments?.tasks || appointments.tasks.length === 0) {
       return false;
     }
     return appointments.tasks.every((task) => task.status === "done");
   };
+
 
   async function fetchAppointmentDetail() {
     try {
@@ -110,6 +108,7 @@ const DetailAppointmentScreen = () => {
     }
   }
 
+
   async function fetchNurseInfo() {
     try {
       if (!nurseId) return;
@@ -122,12 +121,14 @@ const DetailAppointmentScreen = () => {
     }
   }
 
+
   const handlePayment = async () => {
     setIsLoadingPayment(true);
     try {
       if (!packageId) return;
       const response = await invoiceApiRequest.getInvoice(String(packageId));
       const invoiceData = response.payload.data;
+
 
       if (invoiceData && invoiceData.length > 0) {
         const payosUrl = invoiceData[0]["payos-url"];
@@ -142,6 +143,7 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+
   const handleNavigationChange = (navState: any) => {
     const { url } = navState;
     if (
@@ -151,6 +153,7 @@ const DetailAppointmentScreen = () => {
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
       const responseCancel = parsedUrl.searchParams.get("cancel");
+
 
       if (responseCode === "00" && responseCancel !== "true") {
         setIsSuccess(true);
@@ -162,10 +165,12 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+
   const handleGoHome = () => {
     setIsModalVisible(false);
     router.push("/(tabs)/schedule");
   };
+
 
   const handleAddTask = (appointments: AppointmentDetail | undefined) => {
     router.push({
@@ -173,16 +178,18 @@ const DetailAppointmentScreen = () => {
       params: {
         id: String(id),
         appointments: JSON.stringify(appointments),
-        serviceId: String(packageId),
+        serviceId: String(appointments?.package["svc-package-id"]),
         name: String(appointments?.package.name),
       },
     });
   };
 
+
   const handleCloseModal = () => {
     setIsModalVisible(false);
     router.push("/(tabs)/home");
   };
+
 
   const handleFeedbackSubmit = async () => {
     if (feedbackRate === 0 || !feedbackContent.trim()) {
@@ -238,6 +245,7 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+
   const renderStars = () => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -254,6 +262,7 @@ const DetailAppointmentScreen = () => {
     return stars;
   };
 
+
   useEffect(() => {
     fetchAppointmentDetail();
     fetchMedicalRecord();
@@ -261,6 +270,7 @@ const DetailAppointmentScreen = () => {
       fetchNurseInfo();
     }
   }, []);
+
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -297,6 +307,7 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+
   let formattedDate = "Không xác định";
   let formattedTime = "Không xác định";
   if (date && typeof date === "string") {
@@ -311,10 +322,12 @@ const DetailAppointmentScreen = () => {
     }
   }
 
+
   const statusStyle = getStatusStyle(String(status));
   const certificates = detailNurseData?.certificate
     ? detailNurseData.certificate.split(" - ").map((cert) => `• ${cert}`)
     : [];
+
 
   const totalDuration = appointments?.tasks
     ? appointments.tasks.reduce(
@@ -322,6 +335,7 @@ const DetailAppointmentScreen = () => {
         0
       )
     : 0;
+
 
   const calculateEndTime = () => {
     if (!date || typeof date !== "string") return "Không xác định";
@@ -334,6 +348,7 @@ const DetailAppointmentScreen = () => {
     }
   };
 
+
   const handleViewReport = () => {
     if (!id || !appointments?.tasks || appointments.tasks.length === 0) return;
     router.push({
@@ -344,6 +359,7 @@ const DetailAppointmentScreen = () => {
       },
     });
   };
+
 
   const handleOpenFeedbackModal = async () => {
     if (medicalReport?.id) {
@@ -364,6 +380,7 @@ const DetailAppointmentScreen = () => {
     setIsFeedbackModalVisible(true);
   };
 
+
   if (paymentUrl) {
     return (
       <WebView
@@ -373,6 +390,7 @@ const DetailAppointmentScreen = () => {
       />
     );
   }
+
 
   let formattedActTime = "Chưa bắt đầu";
   if (actTime && typeof actTime === "string") {
@@ -385,6 +403,7 @@ const DetailAppointmentScreen = () => {
       console.error("Error formatting actTime:", error);
     }
   }
+
 
   return (
     <SafeAreaView className="bg-white p-4">
@@ -431,6 +450,7 @@ const DetailAppointmentScreen = () => {
             </View>
           )}
         </View>
+
 
         <View className="mt-6 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
           <Text className="text-xl font-psemibold mb-4 text-blue-600 text-center">
@@ -493,6 +513,7 @@ const DetailAppointmentScreen = () => {
             </View>
           )}
         </View>
+
 
         <View className="mt-6 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
           <Text className="text-xl font-psemibold mb-4 text-blue-600 text-center">
@@ -563,6 +584,7 @@ const DetailAppointmentScreen = () => {
               </TouchableOpacity>
             )}
 
+
             <View>
               <View className="flex-col justify-between">
                 <Text className="font-psemibold text-gray-700">
@@ -617,6 +639,7 @@ const DetailAppointmentScreen = () => {
               </View>
             </View>
 
+
             <View className="mt-4 mx-2">
               <View className="flex-row justify-between items-center">
                 <Text className="font-psemibold text-gray-700">
@@ -650,6 +673,7 @@ const DetailAppointmentScreen = () => {
           </View>
         </View>
 
+
         <View className="mt-4 items-center justify-center">
           <TouchableOpacity
             className={`flex-1 w-full px-6 py-4 rounded-lg ${
@@ -662,6 +686,7 @@ const DetailAppointmentScreen = () => {
             </Text>
           </TouchableOpacity>
         </View>
+
 
         <View className="mt-6 p-2 rounded-2xl">
           <Text className="text-xl font-psemibold mb-4 text-blue-600">
@@ -687,6 +712,7 @@ const DetailAppointmentScreen = () => {
           )}
         </View>
         <View className="mb-20"></View>
+
 
         <Modal visible={isModalVisible} transparent={true} animationType="fade">
           <View className="flex-1 justify-center items-center bg-black/50">
@@ -729,6 +755,7 @@ const DetailAppointmentScreen = () => {
             </View>
           </View>
         </Modal>
+
 
         <Modal
           visible={isFeedbackModalVisible}
@@ -792,5 +819,6 @@ const DetailAppointmentScreen = () => {
     </SafeAreaView>
   );
 };
+
 
 export default DetailAppointmentScreen;

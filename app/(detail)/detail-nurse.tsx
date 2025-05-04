@@ -10,8 +10,11 @@ import {
 import { useState, useEffect } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import HeaderBack from "@/components/HeaderBack";
-import { AvailabilityData, DayOfWeek, DetailNurse } from "@/types/nurse";
+import { DayOfWeek, DetailNurse } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
+import appointmentApiRequest from "@/app/api/appointmentApi";
+import { AppointmentList } from "@/types/appointment";
+
 
 const DetailNurseScreen = () => {
   const { idNurse, id } = useLocalSearchParams();
@@ -19,26 +22,33 @@ const DetailNurseScreen = () => {
   const [twoWeekDays, setTwoWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
+  const [appointments, setAppointments] = useState<AppointmentList[]>([]);
+
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const nurseAvailability: AvailabilityData = {
-    [today.toISOString().split("T")[0]]: ["08:00 - 09:00", "11:00 - 12:00"],
-    [new Date(today.getTime() + 86400000).toISOString().split("T")[0]]: [
-      "08:00 - 09:00",
-      "09:00 - 10:00",
-    ],
-    [new Date(today.getTime() + 2 * 86400000).toISOString().split("T")[0]]: [
-      "10:00 - 11:00",
-      "14:00 - 15:00",
-    ],
-    [new Date(today.getTime() + 3 * 86400000).toISOString().split("T")[0]]: [
-      "08:00 - 09:00",
-      "15:00 - 16:00",
-      "16:00 - 17:00",
-    ],
+
+  const formatDateToYYYYMMDD = (date: Date): string => {
+    return date.toISOString().split("T")[0];
   };
+
+
+  async function fetchAppointments(dateFrom: string, dateTo: string) {
+    try {
+      const response = await appointmentApiRequest.getListAppointmentNurse(
+        String(idNurse),
+        String(dateFrom),
+        String(dateTo)
+      );
+
+
+      setAppointments(response.payload.data);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  }
+
 
   const fetchData = async () => {
     setLoading(true);
@@ -52,6 +62,7 @@ const DetailNurseScreen = () => {
     }
   };
 
+
   const initializeTwoWeeks = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -62,18 +73,34 @@ const DetailNurseScreen = () => {
       days.push(day);
     }
     setTwoWeekDays(days);
-    setSelectedDate(today);
+
+
+    const dateFrom = formatDateToYYYYMMDD(new Date(today.getTime() + 43200000));
+    const dateTo = formatDateToYYYYMMDD(
+      new Date(days[days.length - 1].getTime() + 86400000)
+    );
+
+
+    fetchAppointments(dateFrom, dateTo);
   };
+
 
   useEffect(() => {
     initializeTwoWeeks();
     fetchData();
   }, []);
 
-  const hasSlotsForDate = (date: Date) => {
-    const dateString = date.toISOString().split("T")[0];
-    return (nurseAvailability[dateString] || []).length > 0;
+
+  // Kiểm tra xem ngày có lịch hẹn hay không
+  const hasAppointmentsForDate = (date: Date): boolean => {
+    const dateString = formatDateToYYYYMMDD(date);
+    return appointments.some(
+      (appointment) =>
+        appointment["est-date"].split("T")[0] === dateString &&
+        appointment.status === "confirmed"
+    );
   };
+
 
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
@@ -87,6 +114,7 @@ const DetailNurseScreen = () => {
     });
   };
 
+
   const getDayOfWeek = (day: string): string => {
     const daysOfWeek: DayOfWeek = {
       Monday: "T2",
@@ -99,6 +127,7 @@ const DetailNurseScreen = () => {
     };
     return daysOfWeek[day] || day;
   };
+
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -129,6 +158,7 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
+
             <View className="mt-4 w-full">
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
@@ -139,6 +169,7 @@ const DetailNurseScreen = () => {
                 </Text>
               </View>
 
+
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
                   🕒 Kinh nghiệm
@@ -147,6 +178,7 @@ const DetailNurseScreen = () => {
                   {detailData?.experience}
                 </Text>
               </View>
+
 
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
@@ -158,11 +190,13 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
+
             <View className="bg-yellow-100 p-3 mt-4 rounded-md">
               <Text className="text-yellow-700 text-center font-medium italic">
                 {detailData?.slogan}
               </Text>
             </View>
+
 
             <View className="mt-4">
               <Text className="text-gray-700 font-pbold">Dịch vụ:</Text>
@@ -181,11 +215,13 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
+
             <View className="mt-4 px-4">
               <Text className="text-gray-800 text-lg font-bold mt-2">
                 Lịch làm việc
               </Text>
             </View>
+
 
             <FlatList
               data={twoWeekDays}
@@ -199,12 +235,14 @@ const DetailNurseScreen = () => {
               }}
               renderItem={({ item }) => {
                 const isSelected =
-                  item.toDateString() === selectedDate?.toDateString();
-                const hasSlots = hasSlotsForDate(item);
+                  selectedDate &&
+                  item.toDateString() === selectedDate.toDateString();
+                const hasAppointment = hasAppointmentsForDate(item);
                 const isDisabled =
                   item.getTime() < new Date().setHours(0, 0, 0, 0);
                 const isToday =
                   item.toDateString() === new Date().toDateString();
+
 
                 return (
                   <TouchableOpacity
@@ -215,8 +253,8 @@ const DetailNurseScreen = () => {
                         ? "bg-gray-50 border border-gray-200"
                         : isSelected
                         ? "bg-[#64D1CB] border border-[#64D1CB]"
-                        : hasSlots
-                        ? "bg-white border border-[#64D1CB]"
+                        : hasAppointment
+                        ? "bg-green-100 border border-green-400" // Làm sáng nếu có lịch hẹn
                         : "bg-white border border-gray-200"
                     }`}
                     style={{
@@ -230,6 +268,8 @@ const DetailNurseScreen = () => {
                           ? "text-gray-400"
                           : isSelected
                           ? "text-white"
+                          : hasAppointment
+                          ? "text-green-600"
                           : "text-[#64D1CB]"
                       }`}
                     >
@@ -245,6 +285,8 @@ const DetailNurseScreen = () => {
                           ? "text-white"
                           : isToday
                           ? "text-green-600"
+                          : hasAppointment
+                          ? "text-green-600"
                           : "text-gray-700"
                       }`}
                     >
@@ -254,6 +296,7 @@ const DetailNurseScreen = () => {
                 );
               }}
             />
+
 
             <TouchableOpacity
               onPress={() =>
@@ -275,5 +318,6 @@ const DetailNurseScreen = () => {
     </SafeAreaView>
   );
 };
+
 
 export default DetailNurseScreen;
