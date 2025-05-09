@@ -86,12 +86,11 @@ const ConfirmScreen = () => {
       url.includes("https://curanest.com.vn/payment-result-fail")
     ) {
       setPaymentUrl("");
-
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
-      const responseCancel = parsedUrl.searchParams.get("cancel");
+      const responseCancel = parsedUrl.searchParams.get("status");
 
-      if (responseCode === "00" && responseCancel !== "true") {
+      if (responseCode === "00" && responseCancel !== "CANCELLED") {
         setIsSuccess(true);
         setIsModalVisible(true);
       } else {
@@ -138,6 +137,7 @@ const ConfirmScreen = () => {
         "total-unit": service.totalUnit,
       })),
     };
+
     try {
       const response = await appointmentApiRequest.createAppointment(
         submitData
@@ -167,12 +167,12 @@ const ConfirmScreen = () => {
 
   const handleGoHome = () => {
     setIsModalVisible(false);
-    router.push("/(tabs)/schedule");
+    router.navigate("/(tabs)/schedule");
   };
 
   const handleCloseModal = () => {
     setIsModalVisible(false);
-    router.push("/(tabs)/home");
+    router.navigate("/(tabs)/schedule");
   };
 
   const totalPrice = packageData?.totalPrice || 0;

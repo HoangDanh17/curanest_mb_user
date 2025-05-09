@@ -23,7 +23,6 @@ import { URL } from "react-native-url-polyfill";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
-
 const DetailAppointmentScreen = () => {
   const { id, packageId, nurseId, date, status, actTime, selectName } =
     useLocalSearchParams();
@@ -40,7 +39,6 @@ const DetailAppointmentScreen = () => {
   const [feedbackData, setFeedbackData] = useState<FeedbackType | null>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [isMedicalReportLoading, setIsMedicalReportLoading] = useState(true);
-
 
   async function fetchMedicalRecord() {
     try {
@@ -59,7 +57,6 @@ const DetailAppointmentScreen = () => {
       setIsMedicalReportLoading(false);
     }
   }
-
 
   async function fetchFeedback(medicalId: string) {
     try {
@@ -84,14 +81,12 @@ const DetailAppointmentScreen = () => {
     }
   }
 
-
   const areAllTasksDone = () => {
     if (!appointments?.tasks || appointments.tasks.length === 0) {
       return false;
     }
     return appointments.tasks.every((task) => task.status === "done");
   };
-
 
   async function fetchAppointmentDetail() {
     try {
@@ -108,7 +103,6 @@ const DetailAppointmentScreen = () => {
     }
   }
 
-
   async function fetchNurseInfo() {
     try {
       if (!nurseId) return;
@@ -121,14 +115,12 @@ const DetailAppointmentScreen = () => {
     }
   }
 
-
   const handlePayment = async () => {
     setIsLoadingPayment(true);
     try {
       if (!packageId) return;
       const response = await invoiceApiRequest.getInvoice(String(packageId));
       const invoiceData = response.payload.data;
-
 
       if (invoiceData && invoiceData.length > 0) {
         const payosUrl = invoiceData[0]["payos-url"];
@@ -143,19 +135,18 @@ const DetailAppointmentScreen = () => {
     }
   };
 
-
   const handleNavigationChange = (navState: any) => {
     const { url } = navState;
     if (
       url.includes("https://curanest.com.vn/payment-result-success") ||
       url.includes("https://curanest.com.vn/payment-result-fail")
     ) {
+      setPaymentUrl("");
       const parsedUrl = new URL(url);
       const responseCode = parsedUrl.searchParams.get("code");
-      const responseCancel = parsedUrl.searchParams.get("cancel");
+      const responseCancel = parsedUrl.searchParams.get("status");
 
-
-      if (responseCode === "00" && responseCancel !== "true") {
+      if (responseCode === "00" && responseCancel !== "CANCELLED") {
         setIsSuccess(true);
         setIsModalVisible(true);
       } else {
@@ -165,31 +156,15 @@ const DetailAppointmentScreen = () => {
     }
   };
 
-
   const handleGoHome = () => {
     setIsModalVisible(false);
     router.push("/(tabs)/schedule");
   };
 
-
-  const handleAddTask = (appointments: AppointmentDetail | undefined) => {
-    router.push({
-      pathname: "/additional-task",
-      params: {
-        id: String(id),
-        appointments: JSON.stringify(appointments),
-        serviceId: String(appointments?.package["svc-package-id"]),
-        name: String(appointments?.package.name),
-      },
-    });
-  };
-
-
   const handleCloseModal = () => {
     setIsModalVisible(false);
     router.push("/(tabs)/home");
   };
-
 
   const handleFeedbackSubmit = async () => {
     if (feedbackRate === 0 || !feedbackContent.trim()) {
@@ -245,7 +220,6 @@ const DetailAppointmentScreen = () => {
     }
   };
 
-
   const renderStars = () => {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
@@ -262,15 +236,20 @@ const DetailAppointmentScreen = () => {
     return stars;
   };
 
-
   useEffect(() => {
-    fetchAppointmentDetail();
-    fetchMedicalRecord();
-    if (nurseId) {
-      fetchNurseInfo();
-    }
-  }, []);
+    const fetchData = async () => {
+      await fetchAppointmentDetail();
+      await fetchMedicalRecord();
+      if (nurseId) {
+        await fetchNurseInfo();
+      }
+      if (medicalReport?.id) {
+        await fetchFeedback(String(medicalReport.id));
+      }
+    };
 
+    fetchData();
+  }, [medicalReport?.id]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -307,7 +286,6 @@ const DetailAppointmentScreen = () => {
     }
   };
 
-
   let formattedDate = "Không xác định";
   let formattedTime = "Không xác định";
   if (date && typeof date === "string") {
@@ -322,12 +300,10 @@ const DetailAppointmentScreen = () => {
     }
   }
 
-
   const statusStyle = getStatusStyle(String(status));
   const certificates = detailNurseData?.certificate
     ? detailNurseData.certificate.split(" - ").map((cert) => `• ${cert}`)
     : [];
-
 
   const totalDuration = appointments?.tasks
     ? appointments.tasks.reduce(
@@ -335,7 +311,6 @@ const DetailAppointmentScreen = () => {
         0
       )
     : 0;
-
 
   const calculateEndTime = () => {
     if (!date || typeof date !== "string") return "Không xác định";
@@ -348,7 +323,6 @@ const DetailAppointmentScreen = () => {
     }
   };
 
-
   const handleViewReport = () => {
     if (!id || !appointments?.tasks || appointments.tasks.length === 0) return;
     router.push({
@@ -359,7 +333,6 @@ const DetailAppointmentScreen = () => {
       },
     });
   };
-
 
   const handleOpenFeedbackModal = async () => {
     if (medicalReport?.id) {
@@ -380,30 +353,27 @@ const DetailAppointmentScreen = () => {
     setIsFeedbackModalVisible(true);
   };
 
-
   if (paymentUrl) {
     return (
       <WebView
         source={{ uri: paymentUrl }}
         onNavigationStateChange={handleNavigationChange}
-        style={{ flex: 1 }}
+        style={{ flex: 1, marginTop: 10 }}
       />
     );
   }
-
 
   let formattedActTime = "Chưa bắt đầu";
   if (actTime && typeof actTime === "string") {
     try {
       const parsedActTime = parseISO(actTime);
       if (!isNaN(parsedActTime.getTime())) {
-        formattedActTime = format(parsedActTime, "dd/MM/yyyy - hh:mm a");
+        formattedActTime = format(parsedActTime, "hh:mm a");
       }
     } catch (error) {
       console.error("Error formatting actTime:", error);
     }
   }
-
 
   return (
     <SafeAreaView className="bg-white p-4">
@@ -450,7 +420,6 @@ const DetailAppointmentScreen = () => {
             </View>
           )}
         </View>
-
 
         <View className="mt-6 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
           <Text className="text-xl font-psemibold mb-4 text-blue-600 text-center">
@@ -513,7 +482,6 @@ const DetailAppointmentScreen = () => {
             </View>
           )}
         </View>
-
 
         <View className="mt-6 p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
           <Text className="text-xl font-psemibold mb-4 text-blue-600 text-center">
@@ -584,7 +552,6 @@ const DetailAppointmentScreen = () => {
               </TouchableOpacity>
             )}
 
-
             <View>
               <View className="flex-col justify-between">
                 <Text className="font-psemibold text-gray-700">
@@ -639,7 +606,6 @@ const DetailAppointmentScreen = () => {
               </View>
             </View>
 
-
             <View className="mt-4 mx-2">
               <View className="flex-row justify-between items-center">
                 <Text className="font-psemibold text-gray-700">
@@ -660,19 +626,8 @@ const DetailAppointmentScreen = () => {
                 </Text>
               </View>
             </View>
-            {status !== "success" && (
-              <TouchableOpacity
-                className="mt-4 px-6 py-4 rounded-lg bg-teal-500 border shadow-2xl"
-                onPress={() => handleAddTask(appointments)}
-              >
-                <Text className="text-white font-pbold text-center">
-                  Thêm task mới
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
-
 
         <View className="mt-4 items-center justify-center">
           <TouchableOpacity
@@ -687,19 +642,42 @@ const DetailAppointmentScreen = () => {
           </TouchableOpacity>
         </View>
 
-
         <View className="mt-6 p-2 rounded-2xl">
           <Text className="text-xl font-psemibold mb-4 text-blue-600">
             Lời khuyên từ điều dưỡng
           </Text>
-          <View className="space-y-4 gap-2">
+          <View className="gap-2">
             <Text>
               {medicalReport && medicalReport?.["nursing-report"] !== ""
                 ? medicalReport?.["nursing-report"]
                 : "Chưa có báo cáo"}
             </Text>
           </View>
-          {status === "success" && (
+          {status === "success" && feedbackData && (
+            <View className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <Text className="text-lg font-psemibold text-gray-700 mb-2">
+                Đánh giá của bạn
+              </Text>
+              <View className="flex-row mb-2">
+                {[...Array(5)].map((_, i) => (
+                  <Ionicons
+                    key={i}
+                    name={
+                      i < parseInt(feedbackData.star) ? "star" : "star-outline"
+                    }
+                    size={20}
+                    color={
+                      i < parseInt(feedbackData.star) ? "#FFD700" : "#A0A0A0"
+                    }
+                  />
+                ))}
+              </View>
+              <Text className="text-gray-600 font-pmedium">
+                {feedbackData.content || "Không có nội dung phản hồi"}
+              </Text>
+            </View>
+          )}
+          {status === "success" && !feedbackData && (
             <TouchableOpacity
               className="mt-4 px-6 py-4 rounded-lg bg-sky-400 border shadow-2xl"
               onPress={handleOpenFeedbackModal}
@@ -711,8 +689,7 @@ const DetailAppointmentScreen = () => {
             </TouchableOpacity>
           )}
         </View>
-        <View className="mb-20"></View>
-
+        <View className="mb-10"></View>
 
         <Modal visible={isModalVisible} transparent={true} animationType="fade">
           <View className="flex-1 justify-center items-center bg-black/50">
@@ -720,7 +697,7 @@ const DetailAppointmentScreen = () => {
               <Image
                 source={{
                   uri: isSuccess
-                    ? "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s"
+                    ? "https://encrypted-tbn0.gstatic.com/images?q=tbni:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s"
                     : "https://cdn-icons-png.flaticon.com/512/6659/6659895.png",
                 }}
                 className="w-32 h-32 mx-auto mb-4 bg-white"
@@ -755,7 +732,6 @@ const DetailAppointmentScreen = () => {
             </View>
           </View>
         </Modal>
-
 
         <Modal
           visible={isFeedbackModalVisible}
@@ -806,7 +782,7 @@ const DetailAppointmentScreen = () => {
                       onPress={handleFeedbackSubmit}
                     >
                       <Text className="text-white font-pmedium text-center">
-                        {feedbackData ? "Cập nhật" : "Gửi"}
+                        Gửi
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -819,6 +795,5 @@ const DetailAppointmentScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 export default DetailAppointmentScreen;

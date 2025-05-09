@@ -1,7 +1,6 @@
 import { ListNurseData } from "@/types/nurse";
 import { GestureResponderEvent } from "react-native";
 
-
 export type Status =
   | "waiting"
   | "confirmed"
@@ -9,14 +8,12 @@ export type Status =
   | "upcoming"
   | "changed";
 
-
 export interface StatusStyle {
   backgroundColor?: string;
   textColor?: string;
   borderColor?: string;
   label: string;
 }
-
 
 export type AppointmentCardProps = {
   id: string | undefined;
@@ -31,7 +28,6 @@ export type AppointmentCardProps = {
   actTime: string | null;
   selectName: string;
 };
-
 
 export type CreateAppointment = {
   "date-nurse-mappings": {
@@ -51,13 +47,11 @@ export type CreateAppointment = {
   }[];
 };
 
-
 export type CreateAppointmentRes = {
   status: number;
   message: string;
   "object-id": string;
 };
-
 
 export type AppointmentList = {
   id: string;
@@ -73,7 +67,6 @@ export type AppointmentList = {
   "total-est-duration": number;
   "created-at": string;
 };
-
 
 export type AppointmentListNurse = {
   id: string;
@@ -91,7 +84,6 @@ export type AppointmentListNurse = {
   nurse: ListNurseData | null;
 };
 
-
 export type AppointmentListRes = {
   status: number;
   data: AppointmentList[];
@@ -99,7 +91,6 @@ export type AppointmentListRes = {
     "service-id": string;
   };
 };
-
 
 export type AppointmentDetail = {
   package: {
@@ -128,12 +119,10 @@ export type AppointmentDetail = {
   }[];
 };
 
-
 export type AppointmentDetailRes = {
   status: number;
   data: AppointmentDetail;
 };
-
 
 export interface Service {
   id: string;
@@ -147,7 +136,6 @@ export interface Service {
   totalUnit: number;
 }
 
-
 export interface PackageData {
   day: string;
   description: string;
@@ -159,7 +147,6 @@ export interface PackageData {
   totalPrice: number;
   discountedPrice?: number;
 }
-
 
 export interface PatientData {
   address: string;
@@ -174,13 +161,11 @@ export interface PatientData {
   ward: string;
 }
 
-
 export interface Appointment {
   date: string;
   "nursing-id"?: string;
   "nurse-name"?: string;
 }
-
 
 export interface NurseTime {
   "appointment-id": string;
@@ -192,12 +177,10 @@ export interface NurseTime {
   "est-travel-time": number;
 }
 
-
 export type NurseTimeRes = {
   status: number;
   data: NurseTime[];
 };
-
 
 export type GetReport = {
   id: string;
@@ -209,12 +192,10 @@ export type GetReport = {
   "created-at": string;
 };
 
-
 export type GetReportRes = {
   status: number;
   data: GetReport;
 };
-
 
 export type NurseSchedule = {
   "appointment-id": string;
@@ -226,8 +207,23 @@ export type NurseSchedule = {
   "est-travel-time": number;
 };
 
-
 export type NurseScheduleRes = {
   status: number;
   data: NurseSchedule[];
+};
+
+export type AddMoreAppointment = {
+  "appointment-id": "string",
+  "task-infos": {
+    "client-note": string;
+    "est-duration": number;
+    "svctask-id": string;
+    "total-cost": number;
+    "total-unit": number;
+  }[];
+};
+
+export type AddMoreAppointmentRes = {
+  status: number;
+  message: string;
 };

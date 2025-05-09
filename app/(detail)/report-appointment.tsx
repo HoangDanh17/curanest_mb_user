@@ -33,9 +33,11 @@ const ReportAppointmentItem: React.FC<ReportAppointmentItemProps> = ({
           isCompleted ? "bg-green-500" : "bg-[#64CBDD]"
         }`}
       >
-        <Text className="text-white text-lg font-pbold">
-          {`${index + 1}. ${report.title}`}
-        </Text>
+        <View className="flex-1 mr-3">
+          <Text className="text-white text-lg font-pbold flex-wrap">
+            {`${index + 1}. ${report.title}`}
+          </Text>
+        </View>
         <View className="w-8 h-8 border-2 rounded flex items-center justify-center bg-white">
           {isCompleted && <Text className="text-green-500 font-pbold">✔</Text>}
         </View>

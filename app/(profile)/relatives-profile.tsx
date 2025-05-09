@@ -42,7 +42,7 @@ const RelativesProfileScreen = () => {
   const [selectedWards, setSelectedWards] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null); // Initialize as null
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const validateForm = (): boolean => {
@@ -156,6 +156,18 @@ const RelativesProfileScreen = () => {
 
         setNurseData(formattedData);
         setEditData(formattedData);
+
+        // Set selectedDate based on dob
+        if (formattedData.dob) {
+          const parsedDate = new Date(formattedData.dob);
+          if (!isNaN(parsedDate.getTime())) {
+            setSelectedDate(parsedDate);
+          } else {
+            setSelectedDate(new Date()); // Fallback to current date if invalid
+          }
+        } else {
+          setSelectedDate(new Date()); // Fallback to current date if no dob
+        }
       }
     } catch (error) {
       Alert.alert("Error", "Failed to fetch user data");
@@ -230,6 +242,17 @@ const RelativesProfileScreen = () => {
 
   const handleCancel = () => {
     setEditData(nurseData);
+    // Reset selectedDate to nurseData.dob
+    if (nurseData.dob) {
+      const parsedDate = new Date(nurseData.dob);
+      if (!isNaN(parsedDate.getTime())) {
+        setSelectedDate(parsedDate);
+      } else {
+        setSelectedDate(new Date());
+      }
+    } else {
+      setSelectedDate(new Date());
+    }
     setIsEditing(false);
   };
 
@@ -437,11 +460,11 @@ const RelativesProfileScreen = () => {
             <Text>{editData.dob || "Chọn ngày sinh"}</Text>
           </TouchableOpacity>
 
-          {showDatePicker && (
+          {showDatePicker && selectedDate && (
             <DateTimePicker
               value={selectedDate}
               mode="date"
-              display="default"
+              display="spinner"
               onChange={handleDateChange}
             />
           )}

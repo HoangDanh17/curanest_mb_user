@@ -71,7 +71,7 @@ const ListNurseScreen = () => {
   }));
 
   return (
-    <SafeAreaView className="flex-1 p-4 bg-white">
+    <SafeAreaView className="flex-1 p-4 bg-white pb-0">
       <View className="flex-row items-center justify-between mb-4">
         <View className="flex-row items-center">
           <HeaderBack />

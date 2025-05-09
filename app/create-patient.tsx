@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import * as ImagePicker from "expo-image-picker";
 import { Picker } from "@react-native-picker/picker";
 import CustomInput from "@/components/CustomInput";
 import CustomRadio from "@/components/CustomRadio";
@@ -17,8 +16,9 @@ import HeaderBack from "@/components/HeaderBack";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ApiService from "@/app/api/ApiService";
 import patientApiRequest from "@/app/api/patientApi";
-import { CreatePatient, Patient } from "@/types/patient";
+import { CreatePatient } from "@/types/patient";
 import { router } from "expo-router";
+import Toast from "react-native-toast-message";
 
 interface District {
   id: string;
@@ -37,12 +37,10 @@ interface PatientForm {
   gender: boolean;
   medicalCondition: string;
   nursingNotes: string;
-  email: string;
 }
 
 interface FormErrors {
   fullName?: string;
-  email?: string;
   dob?: string;
   phone?: string;
   district?: string;
@@ -70,13 +68,6 @@ const validateForm = (data: PatientForm): FormErrors => {
     errors.dob = "Vui lòng nhập ngày sinh";
   } else if (!dobRegex.test(data.dob)) {
     errors.dob = "Ngày sinh không hợp lệ (YYYY-MM-DD)";
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!data.email) {
-    errors.email = "Vui lòng nhập email";
-  } else if (!emailRegex.test(data.email)) {
-    errors.email = "Email không hợp lệ";
   }
 
   const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
@@ -108,7 +99,6 @@ const validateForm = (data: PatientForm): FormErrors => {
 const CreatePatientScreen = () => {
   const [formData, setFormData] = useState<PatientForm>({
     fullName: "",
-    email: "",
     dob: "",
     phone: "",
     district: "",
@@ -182,7 +172,6 @@ const CreatePatientScreen = () => {
     setErrors(formErrors);
 
     if (Object.keys(formErrors).length > 0) {
-      console.log("Form has errors:", formErrors);
       return;
     }
 
@@ -203,13 +192,21 @@ const CreatePatientScreen = () => {
       };
 
       const response = await patientApiRequest.createPatient(patientData);
+      Toast.show({
+        type: "success",
+        text1: "Tạo hồ sơ thành công",
+      });
       router.back();
     } catch (error: any) {
       if (
         error.payload.error.inner ===
         "Error 1062 (23000): Duplicate entry '0999999999' for key 'patients.unique_phone'"
       ) {
-        Alert.alert("Đăng kí thất bại", "Số điện thoại này đã tồn tại");
+        Toast.show({
+          type: "error",
+          text1: "Tạo hồ sơ thất bại",
+          text2: "Số điện thoại này đã tồn tại",
+        });
       }
     } finally {
       setIsLoading(false);
@@ -225,12 +222,12 @@ const CreatePatientScreen = () => {
   return (
     <LinearGradient
       colors={["#E0F2FE", "#EEF2FF", "#FAF5FF"]}
-      className="flex-1"
+      className="flex-1 pb-0"
     >
       <ScrollView className="flex-1">
         <View className="p-4 mt-8">
           <View className="bg-white p-4 rounded-xl">
-          <HeaderBack />
+            <HeaderBack />
             <CustomInput
               label="Họ và tên"
               value={formData.fullName}
@@ -244,7 +241,6 @@ const CreatePatientScreen = () => {
               error={errors.fullName}
             />
 
-            {/* Date of Birth */}
             <View className="gap-2 mt-2">
               <Text className="text-black text-base mb-1 font-pbold">
                 Ngày sinh
@@ -270,23 +266,10 @@ const CreatePatientScreen = () => {
                   mode="date"
                   display="spinner"
                   onChange={handleDateChange}
+                  locale="vi"
                 />
               )}
             </View>
-
-            <CustomInput
-              label="Email"
-              value={formData.email}
-              onChangeText={(text) => {
-                setFormData({ ...formData, email: text });
-                setErrors({ ...errors, email: undefined });
-              }}
-              placeholder="Nhập email"
-              keyboardType="email-address"
-              className="border rounded-xl"
-              containerClassName="bg-white rounded-lg shadow-sm"
-              error={errors.email}
-            />
 
             <CustomInput
               label="Số điện thoại"

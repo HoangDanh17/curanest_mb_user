@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  Alert,
   Image,
   ActivityIndicator,
   Animated,
@@ -16,6 +14,7 @@ import { Link, router } from "expo-router";
 import InputLogin from "@/components/InputLogin";
 import authApiRequest from "@/app/api/authApi";
 import { RegisterBodyType } from "@/types/login";
+import Toast from "react-native-toast-message"; // Import Toast
 
 interface FormErrors {
   fullName: string;
@@ -113,6 +112,9 @@ const RegisterScreen = () => {
     if (!/[0-9]/.test(password)) {
       return "Mật khẩu phải chứa ít nhất 1 số";
     }
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(password)) {
+      return "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt";
+    }
     return "";
   };
 
@@ -199,9 +201,18 @@ const RegisterScreen = () => {
       setLoading(true);
       try {
         const response = await authApiRequest.register(finalForm);
+        Toast.show({
+          type: "success",
+          text1: "Đăng ký thành công",
+          text2: "Bạn sẽ được chuyển hướng đến trang đăng nhập",
+        });
         router.push("/(auth)/login");
       } catch (error: any) {
-        Alert.alert("Đăng kí thất bại", error.payload.error.reason_field);
+        Toast.show({
+          type: "error",
+          text1: "Đăng ký thất bại",
+          text2: error.payload?.error?.reason_field || "Đã có lỗi xảy ra",
+        });
       } finally {
         setLoading(false);
       }
@@ -379,7 +390,7 @@ const RegisterScreen = () => {
           touched={touched.email}
           loading={loading}
           animationStyle={{
-            transform: [{ translateX: emailInputAnimation }], 
+            transform: [{ translateX: emailInputAnimation }],
           }}
         />
         <InputLogin
@@ -415,7 +426,6 @@ const RegisterScreen = () => {
           }}
         />
 
-        {/* Confirm Password Input */}
         <InputLogin
           label="Xác nhận mật khẩu"
           placeholder="*********"

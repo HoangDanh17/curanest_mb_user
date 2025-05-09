@@ -16,6 +16,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { LoginBodyType } from "@/types/login";
 import authApiRequest from "@/app/api/authApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
+import { useSearch } from "@/app/provider";
 
 interface FormErrors {
   "phone-number": string;
@@ -43,6 +45,7 @@ const LoginScreen: React.FC = () => {
   const phoneNumberInputAnimation = useRef(new Animated.Value(-300)).current;
   const passwordInputAnimation = useRef(new Animated.Value(-300)).current;
   const buttonAnimation = useRef(new Animated.Value(-300)).current;
+  const [token1, setToken] = useState<string>();
 
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneRegex = /^(0[1|3|5|7|8|9])+([0-9]{8})\b/;
@@ -93,34 +96,57 @@ const LoginScreen: React.FC = () => {
     return !phoneNumberError && !passwordError;
   };
 
+  const handleGetToken = async () => {
+    const pushToken = await AsyncStorage.getItem("expoPushToken");
+    setToken(String(pushToken));
+  };
+
   const handleLogin = async () => {
     if (!isFormValid()) {
       return;
     }
     try {
       setLoading(true);
-      const response = await authApiRequest.login(form);
+      const pushToken = await AsyncStorage.getItem("expoPushToken");
+      const loginPayload = {
+        ...form,
+        "push-token": token1,
+      };
+      const response = await authApiRequest.login(loginPayload);
       const userRole = response.payload.data["account-info"].role;
       if (userRole !== "relatives") {
-        Alert.alert(
-          "Không được phép truy cập",
-          "Ứng dụng này chỉ dành cho người dùng."
-        );
+        Toast.show({
+          type: "error",
+          text1: "Không được phép truy cập",
+          text2: "Ứng dụng này chỉ dành cho người dùng.",
+        });
         return;
       }
       await AsyncStorage.setItem(
         "userInfo",
         JSON.stringify(response.payload.data["account-info"])
       );
-
+      Toast.show({
+        type: "success",
+        text1: "Đăng nhập thành công",
+        text2: "Chào mừng tới Curanest",
+      });
       const token = response.payload.data.token["access_token"];
       await AsyncStorage.setItem("accessToken", token);
       router.push("/(tabs)/home");
     } catch (error: any) {
       if (error.payload.error.reason_field) {
-        Alert.alert("Đăng nhập thất bại", error.payload.error.reason_field);
+        Toast.show({
+          type: "error",
+          text1: "Đăng nhập thất bại",
+          text2: error.payload?.error?.reason_field || "Đã có lỗi xảy ra",
+        });
       } else {
-        Alert.alert("Đăng nhập thất bại", "Có lỗi xảy ra. Vui lòng thử lại.");
+        Toast.show({
+          type: "error",
+          text1: "Đăng nhập thất bại",
+          text2: "Có lỗi xảy ra. Vui lòng thử lại.",
+        });
       }
     } finally {
       setLoading(false);
@@ -189,6 +215,7 @@ const LoginScreen: React.FC = () => {
   useEffect(() => {
     animateCircles();
     animateInputsAndButton();
+    handleGetToken();
   }, []);
 
   const togglePasswordVisibility = () => {

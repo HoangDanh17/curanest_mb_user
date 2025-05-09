@@ -15,7 +15,6 @@ import nurseApiRequest from "@/app/api/nurseApi";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 import { AppointmentList } from "@/types/appointment";
 
-
 const DetailNurseScreen = () => {
   const { idNurse, id } = useLocalSearchParams();
   const [detailData, setDetailData] = useState<DetailNurse>();
@@ -24,15 +23,12 @@ const DetailNurseScreen = () => {
   const [loading, setLoading] = useState(false);
   const [appointments, setAppointments] = useState<AppointmentList[]>([]);
 
-
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
 
   const formatDateToYYYYMMDD = (date: Date): string => {
     return date.toISOString().split("T")[0];
   };
-
 
   async function fetchAppointments(dateFrom: string, dateTo: string) {
     try {
@@ -42,13 +38,11 @@ const DetailNurseScreen = () => {
         String(dateTo)
       );
 
-
       setAppointments(response.payload.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
     }
   }
-
 
   const fetchData = async () => {
     setLoading(true);
@@ -62,7 +56,6 @@ const DetailNurseScreen = () => {
     }
   };
 
-
   const initializeTwoWeeks = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -74,24 +67,19 @@ const DetailNurseScreen = () => {
     }
     setTwoWeekDays(days);
 
-
     const dateFrom = formatDateToYYYYMMDD(new Date(today.getTime() + 43200000));
     const dateTo = formatDateToYYYYMMDD(
       new Date(days[days.length - 1].getTime() + 86400000)
     );
 
-
     fetchAppointments(dateFrom, dateTo);
   };
-
 
   useEffect(() => {
     initializeTwoWeeks();
     fetchData();
   }, []);
 
-
-  // Kiểm tra xem ngày có lịch hẹn hay không
   const hasAppointmentsForDate = (date: Date): boolean => {
     const dateString = formatDateToYYYYMMDD(date);
     return appointments.some(
@@ -101,7 +89,6 @@ const DetailNurseScreen = () => {
     );
   };
 
-
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
     router.push({
@@ -110,10 +97,10 @@ const DetailNurseScreen = () => {
         id: String(id),
         idNurse: String(idNurse),
         selectedDate: date.toISOString(),
+        detailData: JSON.stringify(detailData),
       },
     });
   };
-
 
   const getDayOfWeek = (day: string): string => {
     const daysOfWeek: DayOfWeek = {
@@ -127,7 +114,6 @@ const DetailNurseScreen = () => {
     };
     return daysOfWeek[day] || day;
   };
-
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -158,7 +144,6 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
-
             <View className="mt-4 w-full">
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
@@ -169,7 +154,6 @@ const DetailNurseScreen = () => {
                 </Text>
               </View>
 
-
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
                   🕒 Kinh nghiệm
@@ -178,7 +162,6 @@ const DetailNurseScreen = () => {
                   {detailData?.experience}
                 </Text>
               </View>
-
 
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
                 <Text className="text-md text-gray-500 font-pbold">
@@ -190,13 +173,11 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
-
             <View className="bg-yellow-100 p-3 mt-4 rounded-md">
               <Text className="text-yellow-700 text-center font-medium italic">
                 {detailData?.slogan}
               </Text>
             </View>
-
 
             <View className="mt-4">
               <Text className="text-gray-700 font-pbold">Dịch vụ:</Text>
@@ -215,13 +196,11 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
-
             <View className="mt-4 px-4">
               <Text className="text-gray-800 text-lg font-bold mt-2">
                 Lịch làm việc
               </Text>
             </View>
-
 
             <FlatList
               data={twoWeekDays}
@@ -242,7 +221,6 @@ const DetailNurseScreen = () => {
                   item.getTime() < new Date().setHours(0, 0, 0, 0);
                 const isToday =
                   item.toDateString() === new Date().toDateString();
-
 
                 return (
                   <TouchableOpacity
@@ -297,7 +275,6 @@ const DetailNurseScreen = () => {
               }}
             />
 
-
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -318,6 +295,5 @@ const DetailNurseScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 export default DetailNurseScreen;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -9,18 +9,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import Logo from "@/assets/images/logo-app.png";
 import WelcomeImage from "@/assets/images/homepage.png";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ButtonMenu from "@/components/ButtonMenu";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { Patient } from "@/types/patient";
 import patientApiRequest from "@/app/api/patientApi";
 import { calculateAge } from "@/lib/utils";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { UserData } from "@/app/(tabs)/profile";
 import { useSearch } from "@/app/provider";
+import notiApiRequest from "@/app/api/notiApi";
+import { NotiListType } from "@/types/noti";
+import { UserData } from "@/app/(tabs)/profile";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -37,8 +38,77 @@ const buttonData = [
 
 const HomeScreen = () => {
   const [loading, setLoading] = useState(false);
-  const [patientList, setPatientList] = useState<Patient[]>();
+  const [patientList, setPatientList] = useState<Patient[]>([]);
+  const [notiList, setNotiList] = useState<NotiListType[]>();
   const { setUserData } = useSearch();
+  const [data, setData] = useState<UserData | undefined>();
+
+  async function fetchNoti(userId: string) {
+    try {
+      setLoading(true);
+      const response = await notiApiRequest.getNotiList(userId);
+      const filterData = response.payload.data.filter(
+        (s) => s["read-at"] === null
+      );
+      setNotiList(filterData);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+      setPatientList([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function fetchPatientList() {
+    try {
+      setLoading(true);
+      const response = await patientApiRequest.getAllPatient();
+      setPatientList(response.payload.data || []);
+    } catch (error) {
+      console.error("Error fetching patient list:", error);
+      setPatientList([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const fetchUserInfo = async () => {
+    try {
+      const value = await AsyncStorage.getItem("userInfo");
+      if (value) {
+        const parsedValue: UserData = JSON.parse(value);
+        setUserData(parsedValue);
+        setData(parsedValue);
+        return parsedValue;
+      }
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+    return null;
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const userInfo = await fetchUserInfo();
+          if (userInfo && userInfo.id) {
+            await Promise.all([
+              fetchPatientList(),
+              fetchNoti(String(userInfo.id)),
+            ]);
+          }
+        } catch (error) {
+          console.error("Error loading data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadData();
+    }, [])
+  );
+
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
@@ -47,52 +117,36 @@ const HomeScreen = () => {
     );
   }
 
-  async function fetchPatientList() {
-    try {
-      const response = await patientApiRequest.getAllPatient();
-      setPatientList(response.payload.data);
-    } catch (error) {}
-  }
-
-  const [data, setData] = useState<UserData | undefined>();
-
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const value = await AsyncStorage.getItem("userInfo");
-        if (value) {
-          const parsedValue: UserData = JSON.parse(value);
-          setData(parsedValue);
-          setUserData(parsedValue);
-        }
-      } catch (error) {
-        console.error("Error fetching user info:", error);
-      }
-    };
-
-    fetchUserInfo();
-    fetchPatientList();
-  }, []);
-
   return (
     <SafeAreaView className="bg-white h-full">
-      <ScrollView>
-        <View className="flex flex-row items-center justify-between">
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View className="flex flex-row items-center justify-between mb-4 mt-6">
           <View className="flex flex-col items-start ml-4">
             <Text className="text-md font-psemibold text-gray-400">
               Chào mừng trở lại
             </Text>
-            <Text className="text-lg font-pbold">{data?.["full-name"]}</Text>
+            <Text className="text-lg font-pbold">
+              {data?.["full-name"]}
+            </Text>
           </View>
-          <View>
-            <Image
-              source={Logo}
-              style={{
-                width: width * 0.3,
-                height: height * 0.14,
-                resizeMode: "contain",
-              }}
-            />
+          <View className="flex flex-row items-center">
+            <TouchableOpacity
+              onPress={() => router.push("/detail-notification")}
+              className="relative mr-8"
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={24}
+                color="#374151"
+              />
+              {notiList && notiList?.length > 0 && (
+                <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center">
+                  <Text className="text-white text-xs font-psemibold">
+                    {notiList?.length}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -155,7 +209,7 @@ const HomeScreen = () => {
           <FlatList
             data={patientList}
             removeClippedSubviews={false}
-            renderItem={({ item }) => (
+            renderItem={({ item }: { item: Patient }) => (
               <View
                 className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-4 mr-6"
                 style={{

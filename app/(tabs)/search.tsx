@@ -48,7 +48,7 @@ const CategoryScreen = () => {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-white p-4">
+    <SafeAreaView className="flex-1 bg-white p-4 pb-0">
       {loading ? (
         <View className="my-4 items-center">
           <ActivityIndicator size="large" color="#64D1CB" />

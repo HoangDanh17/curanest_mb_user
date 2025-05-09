@@ -11,7 +11,7 @@ import { CreatePatientRes } from "@/types/patient";
 
 const authApiRequest = {
   login: (body: LoginBodyType) =>
-    http.post<LoginResType>("accounts/login", body, { apiPrefix: "auth" }),
+    http.post<LoginResType>("accounts/user-login", body, { apiPrefix: "auth" }),
   register: (body: RegisterBodyType) =>
     http.post<RegisterResType>("relatives", body, { apiPrefix: "patient" }),
   relativeData: () =>

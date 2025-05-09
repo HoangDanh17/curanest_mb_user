@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, Pressable } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -27,7 +27,7 @@ const ServiceTypeScreen = () => {
   }, []);
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       setSelectedOption(null);
     }, [])
   );

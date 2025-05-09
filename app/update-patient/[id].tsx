@@ -18,6 +18,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import CustomRadio from "@/components/CustomRadio";
 import { genderOptions } from "@/app/create-patient";
+import Toast from "react-native-toast-message";
 
 interface FormErrors {
   fullName?: string;
@@ -162,7 +163,6 @@ const UpdatePatientScreen = () => {
     setErrors(formErrors);
 
     if (Object.keys(formErrors).length > 0) {
-      console.log("Form has errors:", formErrors);
       return;
     }
 
@@ -182,13 +182,21 @@ const UpdatePatientScreen = () => {
         ward: formData.ward,
       };
       const response = await patientApiRequest.updatePatient(id, patientData);
+      Toast.show({
+        type: "warning",
+        text1: "Sửa hồ sơ thành công",
+      });
       router.back();
     } catch (error: any) {
       if (
         error.payload.error.inner ===
         "Error 1062 (23000): Duplicate entry '0999999999' for key 'patients.unique_phone'"
       ) {
-        Alert.alert("Đăng kí thất bại", "Số điện thoại này đã tồn tại");
+        Toast.show({
+          type: "error",
+          text1: "Sửa hồ sơ thất bại",
+          text2: "Số điện thoại này đã tồn tại",
+        });
       }
     } finally {
       setIsLoading(false);

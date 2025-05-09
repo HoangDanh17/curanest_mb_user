@@ -1,5 +1,7 @@
 import http from "@/lib/http";
 import {
+  AddMoreAppointment,
+  AddMoreAppointmentRes,
   AppointmentDetailRes,
   AppointmentListRes,
   CreateAppointment,
@@ -10,7 +12,6 @@ import {
 } from "@/types/appointment";
 import { InvoiceListRes } from "@/types/invoice";
 import { CheckTimeNurseRes, ListNurseDataRes } from "@/types/nurse";
-
 
 const appointmentApiRequest = {
   createAppointment: (body: CreateAppointment) =>
@@ -66,9 +67,12 @@ const appointmentApiRequest = {
       `appointments/nursing-timesheet?nursing-id=${id}&est-date-from=${dateFrom}&est-date-to=${dateTo}`,
       {
         apiPrefix: "appointment",
-      }
+      } 
     ),
+  addMoreTask: (body: AddMoreAppointment) =>
+    http.post<AddMoreAppointmentRes>("cuspackage/add-more-custask", body, {
+      apiPrefix: "appointment",
+    }),
 };
-
 
 export default appointmentApiRequest;

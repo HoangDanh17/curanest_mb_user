@@ -98,9 +98,6 @@ const DateAvailableScreen = () => {
         dateFormat,
         Number(totalDuration)
       );
-      console.log("🚀 ~ fetchListNurse ~ dateFormat:", dateFormat);
-      console.log("🚀 ~ fetchListNurse ~ totalDuration:", totalDuration);
-      console.log("🚀 ~ fetchListNurse ~ id:", id);
       setListNurseData(response.payload.data || []);
     } catch (error) {
       console.error("Error fetching nurses:", error);
@@ -129,24 +126,18 @@ const DateAvailableScreen = () => {
             "est-duration": Number(totalDuration),
           };
         })
-        .filter((item) => item["est-start-date"]); // Filter out invalid dates
+        .filter((item) => item["est-start-date"]); 
 
       if (nursesDates.length === 0) {
-        console.warn("No valid dates to check nurse time");
         setCheckTime([]);
         return;
       }
 
-      console.log("🚀 ~ nursesDates ~ nursesDates:", nursesDates);
       const response = await appointmentApiRequest.checkNurseTime({
         "nurses-dates": nursesDates,
       });
 
       setCheckTime(response.payload.data || []);
-      console.log(
-        "🚀 ~ checkNurseTime ~ response.payload.data:",
-        response.payload.data
-      );
     } catch (error) {
       console.error("Error checking nurse times:", error);
       setCheckTime([]);

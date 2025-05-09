@@ -3,7 +3,6 @@ import { View, SectionList, Text, Image } from "react-native";
 import { AppointmentListNurse, StatusStyle } from "@/types/appointment";
 import AppointmentCard from "@/components/AppointmentCard";
 
-// Define status styles for headers (matching AppointmentCard)
 const STATUS_STYLES: Record<string, StatusStyle> = {
   waiting: {
     backgroundColor: "bg-amber-50",
@@ -25,7 +24,6 @@ const STATUS_STYLES: Record<string, StatusStyle> = {
   },
 };
 
-// Color map for text colors
 const COLOR_MAP: Record<string, string> = {
   "text-amber-600": "#d97706",
   "text-sky-600": "#0284c7",

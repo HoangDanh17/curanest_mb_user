@@ -145,7 +145,6 @@ export default function RootLayout() {
 
     initializeApp();
 
-    // Không gọi checkAuthStatus khi AppState thay đổi
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       appState.current = nextAppState;
     });

@@ -5,7 +5,6 @@ import HeaderBack from "@/components/HeaderBack";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 import { format, addDays, parseISO, differenceInMinutes } from "date-fns";
 
-
 interface NurseSchedule {
   "appointment-id": string;
   "patient-id": string;
@@ -16,7 +15,6 @@ interface NurseSchedule {
   "est-travel-time": number;
 }
 
-
 interface ScheduleItem {
   startHour: number;
   endHour: number;
@@ -24,27 +22,15 @@ interface ScheduleItem {
   endTime: string;
 }
 
-
 const DetailScheduleListScreen = () => {
   const router = useRouter();
-  const { idNurse, id, selectedDate } = useLocalSearchParams();
+  const { idNurse, id, selectedDate, detailData } = useLocalSearchParams();
   const dateStr = Array.isArray(selectedDate) ? selectedDate[0] : selectedDate;
-  console.log("🚀 ~ DetailScheduleListScreen ~ idNurse:", idNurse);
   const currentDate = dateStr ? parseISO(dateStr) : new Date();
   const nextDate = addDays(currentDate, 1);
   const [scheduleData, setScheduleData] = useState<ScheduleItem[]>([]);
 
-
   async function fetchNurseDateTime() {
-    console.log(
-      "🚀 ~ fetchNurseDateTime ~ format(currentDate, 'yyyy-MM-dd'):",
-      format(currentDate, "yyyy-MM-dd")
-    );
-    console.log(
-      "🚀 ~ fetchNurseDateTime ~ format(nextDate, 'yyyy-MM-dd'):",
-      format(nextDate, "yyyy-MM-dd")
-    );
-    console.log("🚀 ~ fetchNurseDateTime ~ idNurse:", idNurse);
     try {
       const response = await appointmentApiRequest.getNurseDate(
         String(idNurse),
@@ -56,27 +42,19 @@ const DetailScheduleListScreen = () => {
         response.payload?.data
       );
 
-
       if (response.payload?.data) {
         const schedules: NurseSchedule[] = response.payload.data;
         const transformedSchedules: ScheduleItem[] = schedules
           .map((schedule) => {
             try {
-              const startDateTime = parseISO(schedule["est-date"]); // e.g., 2025-05-05T05:00:00Z
-              const endDateTime = parseISO(schedule["est-end-time"]); // e.g., 2025-05-05T06:25:00Z
-
-
-              // Validate parsed dates
+              const startDateTime = parseISO(schedule["est-date"]);
+              const endDateTime = parseISO(schedule["est-end-time"]);
               if (
                 isNaN(startDateTime.getTime()) ||
                 isNaN(endDateTime.getTime())
               ) {
-                console.warn(
-                  `Invalid date/time for appointment ${schedule["appointment-id"]}: ${schedule["est-date"]} or ${schedule["est-end-time"]}`
-                );
                 return null;
               }
-
 
               return {
                 startHour:
@@ -86,15 +64,10 @@ const DetailScheduleListScreen = () => {
                 endTime: format(endDateTime, "HH:mm a"),
               };
             } catch (error) {
-              console.warn(
-                `Error parsing date/time for appointment ${schedule["appointment-id"]}:`,
-                error
-              );
               return null;
             }
           })
           .filter((item): item is ScheduleItem => item !== null);
-
 
         setScheduleData(transformedSchedules);
       }
@@ -103,25 +76,21 @@ const DetailScheduleListScreen = () => {
     }
   }
 
-
   useEffect(() => {
     if (idNurse && dateStr) {
       fetchNurseDateTime();
     }
   }, [idNurse, dateStr]);
 
-
   const startHour = 8;
   const endHour = 23;
   const HOUR_HEIGHT = 80;
   const CARD_GAP = 8;
 
-
   const hours = Array.from(
     { length: endHour - startHour + 1 },
     (_, i) => startHour + i
   );
-
 
   return (
     <View className="flex-1 bg-white p-4">
@@ -135,14 +104,13 @@ const DetailScheduleListScreen = () => {
           onPress={() =>
             router.push({
               pathname: "/(create)/choose-profile",
-              params: { id: id },
+              params: { id: id, nurseInfo: detailData },
             })
           }
         >
           <Text className="text-white font-pbold">Đặt lịch</Text>
         </TouchableOpacity>
       </View>
-
 
       <View className="flex-row justify-around items-center mb-4">
         <View className="flex-row items-center">
@@ -159,7 +127,6 @@ const DetailScheduleListScreen = () => {
         </View>
       </View>
 
-
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="relative pt-6 pb-6">
           <View
@@ -171,11 +138,9 @@ const DetailScheduleListScreen = () => {
             className="absolute w-0.5 bg-pink-300"
           />
 
-
           {hours.map((hour, index) => {
             const topOffset = index * HOUR_HEIGHT;
             const hourStr = hour < 10 ? `0${hour}:00` : `${hour}:00`;
-
 
             let dotColor = "bg-indigo-700";
             if (hour >= 8 && hour < 12) {
@@ -183,7 +148,6 @@ const DetailScheduleListScreen = () => {
             } else if (hour >= 12 && hour < 17) {
               dotColor = "bg-orange-500";
             }
-
 
             return (
               <View
@@ -202,12 +166,10 @@ const DetailScheduleListScreen = () => {
             );
           })}
 
-
           {scheduleData.map((item, index) => {
             const startOffset = (item.startHour - startHour) * HOUR_HEIGHT;
             const endOffset = (item.endHour - startHour) * HOUR_HEIGHT;
             const cardHeight = endOffset - startOffset - CARD_GAP;
-
 
             return (
               <View
@@ -222,13 +184,11 @@ const DetailScheduleListScreen = () => {
             );
           })}
 
-
           <View style={{ height: (hours.length - 1) * HOUR_HEIGHT }} />
         </View>
       </ScrollView>
     </View>
   );
 };
-
 
 export default DetailScheduleListScreen;

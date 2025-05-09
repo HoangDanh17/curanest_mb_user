@@ -4,7 +4,7 @@ import AppointmentCard from "@/components/AppointmentCard";
 import { AppointmentProps } from "@/components/appointment/UpcomingScreen";
 import { Image } from "react-native";
 
-const InProgressScreen = ({ appointment,selectName }: AppointmentProps) => {
+const InProgressScreen = ({ appointment, selectName }: AppointmentProps) => {
   const sortedAppointments = [...appointment].sort((a, b) => {
     const dateA = new Date(a["est-date"]).getTime();
     const dateB = new Date(b["est-date"]).getTime();
@@ -41,7 +41,7 @@ const InProgressScreen = ({ appointment,selectName }: AppointmentProps) => {
           <View className="flex-1 justify-center items-center my-4">
             <Image
               source={{
-                uri: "https://cdni.iconscout.com/illustration/premium thumb/man-with-no-schedule-illustration-download-in-svg-png-gif-file-formats--calendar-appointment-empty-state-pack-people-illustrations-10920936.png",
+                uri: "https://cdni.iconscout.com/illustration/premium/thumb/man-with-no-schedule-illustration-download-in-svg-png-gif-file-formats--calendar-appointment-empty-state-pack-people-illustrations-10920936.png",
               }}
               className="w-48 h-48 mb-2"
               resizeMode="contain"
