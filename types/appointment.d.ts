@@ -6,7 +6,9 @@ export type Status =
   | "confirmed"
   | "success"
   | "upcoming"
-  | "changed";
+  | "changed"
+  | "cancel";
+
 
 export interface StatusStyle {
   backgroundColor?: string;

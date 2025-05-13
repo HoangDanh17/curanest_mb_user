@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/welcome.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.danhths.curanest_mb_user",
+      "package": "com.danh123456.curanest_mb_user",
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -45,7 +45,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "fe01d758-fd51-4d83-bd3d-10fc011f06d0"
+        "projectId": "6b898094-1279-40b7-bd52-42ff5f1c7992"
       }
     }
   }

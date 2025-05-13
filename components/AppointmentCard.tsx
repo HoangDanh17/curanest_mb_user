@@ -52,6 +52,12 @@ export const STATUS_STYLES: Record<Status, StatusStyle> = {
     borderColor: "border-2 border-violet-500",
     label: "Chờ đổi điều dưỡng",
   },
+   cancel: {
+    backgroundColor: "bg-red-50",
+    textColor: "text-red-600",
+    borderColor: "border-2 border-red-500",
+    label: "Đã hủy",
+  },
 };
 
 const DEFAULT_STATUS_STYLE: StatusStyle = {

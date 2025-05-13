@@ -17,6 +17,7 @@ import { AppointmentList } from "@/types/appointment";
 
 const DetailNurseScreen = () => {
   const { idNurse, id } = useLocalSearchParams();
+  console.log("🚀 ~ DetailNurseScreen ~ id:", id)
   const [detailData, setDetailData] = useState<DetailNurse>();
   const [twoWeekDays, setTwoWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -279,7 +280,10 @@ const DetailNurseScreen = () => {
               onPress={() =>
                 router.push({
                   pathname: "/(create)/choose-profile",
-                  params: { id: id, nurseInfo: JSON.stringify(detailData) },
+                  params: {
+                    id: String(id),
+                    nurseInfo: JSON.stringify(detailData),
+                  },
                 })
               }
               className="bg-[#A8E0E9] p-3 rounded-md mt-6"

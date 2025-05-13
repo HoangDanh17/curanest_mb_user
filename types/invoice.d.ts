@@ -4,8 +4,8 @@ export type Invoice = {
   "order-code": number;
   "total-fee": number;
   status: string;
-  note: string;
   "payos-url": string;
+  "qr-code": string;
   "created-at": string;
 };
 

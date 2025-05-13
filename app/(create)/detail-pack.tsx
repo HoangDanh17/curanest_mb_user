@@ -359,7 +359,7 @@ const DetailPackScreen = () => {
       router.push({
         pathname: "/(create)/date-available",
         params: {
-          id,
+          id: String(serviceId),
           day,
           totalDuration,
           serviceId,

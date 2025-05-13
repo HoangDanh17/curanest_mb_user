@@ -125,9 +125,7 @@ const HomeScreen = () => {
             <Text className="text-md font-psemibold text-gray-400">
               Chào mừng trở lại
             </Text>
-            <Text className="text-lg font-pbold">
-              {data?.["full-name"]}
-            </Text>
+            <Text className="text-lg font-pbold">{data?.["full-name"]}</Text>
           </View>
           <View className="flex flex-row items-center">
             <TouchableOpacity

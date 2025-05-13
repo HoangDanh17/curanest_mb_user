@@ -22,12 +22,19 @@ const STATUS_STYLES: Record<string, StatusStyle> = {
     borderColor: "border-2 border-violet-500",
     label: "Chờ đổi điều dưỡng",
   },
+  cancel: {
+    backgroundColor: "bg-red-50",
+    textColor: "text-red-600",
+    borderColor: "border-2 border-red-500",
+    label: "Đã hủy",
+  },
 };
 
 const COLOR_MAP: Record<string, string> = {
   "text-amber-600": "#d97706",
   "text-sky-600": "#0284c7",
   "text-violet-600": "#7c3aed",
+  "text-red-600": "#dc2626",
 };
 
 export interface AppointmentProps {
@@ -54,6 +61,9 @@ const UpcomingScreen = ({ appointment, selectName }: AppointmentProps) => {
     changed: sortAppointmentsByDate(
       appointment.filter((item) => item.status === "changed")
     ),
+    cancel: sortAppointmentsByDate(
+      appointment.filter((item) => item.status === "cancel")
+    ),
   };
 
   const sections = [
@@ -68,6 +78,10 @@ const UpcomingScreen = ({ appointment, selectName }: AppointmentProps) => {
     {
       title: "confirmed",
       data: groupedAppointments.confirmed,
+    },
+    {
+      title: "cancel",
+      data: groupedAppointments.cancel,
     },
   ].filter((section) => section.data.length > 0);
 

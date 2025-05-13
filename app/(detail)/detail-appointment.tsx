@@ -18,8 +18,6 @@ import { DetailNurse, FeedbackType } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
 import invoiceApiRequest from "@/app/api/invoiceApi";
 import { addMinutes, format, parseISO } from "date-fns";
-import { WebView } from "react-native-webview";
-import { URL } from "react-native-url-polyfill";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 
@@ -28,10 +26,7 @@ const DetailAppointmentScreen = () => {
     useLocalSearchParams();
   const [appointments, setAppointments] = useState<AppointmentDetail>();
   const [detailNurseData, setDetailNurseData] = useState<DetailNurse>();
-  const [paymentUrl, setPaymentUrl] = useState("");
   const [isLoadingPayment, setIsLoadingPayment] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   const [medicalReport, setMedicalReport] = useState<GetReport>();
   const [isFeedbackModalVisible, setIsFeedbackModalVisible] = useState(false);
   const [feedbackContent, setFeedbackContent] = useState("");
@@ -39,6 +34,8 @@ const DetailAppointmentScreen = () => {
   const [feedbackData, setFeedbackData] = useState<FeedbackType | null>(null);
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [isMedicalReportLoading, setIsMedicalReportLoading] = useState(true);
+  const [isCancelModalVisible, setIsCancelModalVisible] = useState(false); // State cho modal xác nhận hủy
+  const [isCancelLoading, setIsCancelLoading] = useState(false); // State cho trạng thái loading khi hủy
 
   async function fetchMedicalRecord() {
     try {
@@ -120,50 +117,22 @@ const DetailAppointmentScreen = () => {
     try {
       if (!packageId) return;
       const response = await invoiceApiRequest.getInvoice(String(packageId));
-      const invoiceData = response.payload.data;
+      const invoiceData = response.payload.data[0];
 
-      if (invoiceData && invoiceData.length > 0) {
-        const payosUrl = invoiceData[0]["payos-url"];
-        if (payosUrl) {
-          setPaymentUrl(payosUrl);
-        }
+      if (invoiceData) {
+        router.push({
+          pathname: "/(detail)/payment",
+          params: {
+            id: String(invoiceData["cuspackage-id"]),
+            qrCode: String(invoiceData["qr-code"]),
+          },
+        });
       }
     } catch (error: any) {
       console.error("Error fetching invoice:", error);
     } finally {
       setIsLoadingPayment(false);
     }
-  };
-
-  const handleNavigationChange = (navState: any) => {
-    const { url } = navState;
-    if (
-      url.includes("https://curanest.com.vn/payment-result-success") ||
-      url.includes("https://curanest.com.vn/payment-result-fail")
-    ) {
-      setPaymentUrl("");
-      const parsedUrl = new URL(url);
-      const responseCode = parsedUrl.searchParams.get("code");
-      const responseCancel = parsedUrl.searchParams.get("status");
-
-      if (responseCode === "00" && responseCancel !== "CANCELLED") {
-        setIsSuccess(true);
-        setIsModalVisible(true);
-      } else {
-        setIsSuccess(false);
-        setIsModalVisible(true);
-      }
-    }
-  };
-
-  const handleGoHome = () => {
-    setIsModalVisible(false);
-    router.push("/(tabs)/schedule");
-  };
-
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-    router.push("/(tabs)/home");
   };
 
   const handleFeedbackSubmit = async () => {
@@ -217,6 +186,40 @@ const DetailAppointmentScreen = () => {
         text2: "Không thể gửi/cập nhật đánh giá. Vui lòng thử lại!",
         position: "top",
       });
+    }
+  };
+
+  // Hàm xử lý hủy lịch hẹn
+  const handleCancelAppointment = async () => {
+    if (!packageId) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không tìm thấy ID gói dịch vụ!",
+        position: "top",
+      });
+      return;
+    }
+    setIsCancelLoading(true);
+    try {
+      await appointmentApiRequest.cancelAppointment(String(packageId));
+      Toast.show({
+        type: "success",
+        text1: "Thành công",
+        text2: "Lịch hẹn đã được hủy!",
+        position: "top",
+      });
+      setIsCancelModalVisible(false);
+      router.back();
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không thể hủy lịch hẹn! Vui lòng thử lại.",
+        position: "top",
+      });
+    } finally {
+      setIsCancelLoading(false);
     }
   };
 
@@ -276,6 +279,12 @@ const DetailAppointmentScreen = () => {
           backgroundColor: "bg-sky-100",
           textColor: "text-sky-800",
           text: "Đã xác nhận",
+        };
+      case "cancel":
+        return {
+          backgroundColor: "bg-red-100",
+          textColor: "text-red-800",
+          text: "Đã hủy",
         };
       default:
         return {
@@ -352,16 +361,6 @@ const DetailAppointmentScreen = () => {
     }
     setIsFeedbackModalVisible(true);
   };
-
-  if (paymentUrl) {
-    return (
-      <WebView
-        source={{ uri: paymentUrl }}
-        onNavigationStateChange={handleNavigationChange}
-        style={{ flex: 1, marginTop: 10 }}
-      />
-    );
-  }
 
   let formattedActTime = "Chưa bắt đầu";
   if (actTime && typeof actTime === "string") {
@@ -536,21 +535,40 @@ const DetailAppointmentScreen = () => {
                 </Text>
               </View>
             </View>
-            {appointments?.package?.["payment-status"] === "unpaid" && (
-              <TouchableOpacity
-                className="px-6 py-4 rounded-lg bg-[#1f1f1fe3]"
-                onPress={handlePayment}
-                disabled={isLoadingPayment}
-              >
-                {isLoadingPayment ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text className="text-[#FFFFFF] font-pbold text-center">
-                    💳 Thanh toán
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
+            {appointments?.package?.["payment-status"] === "unpaid" &&
+              status !== "cancel" && (
+                <TouchableOpacity
+                  className="px-6 py-4 rounded-lg bg-[#1f1f1fe3]"
+                  onPress={handlePayment}
+                  disabled={isLoadingPayment}
+                >
+                  {isLoadingPayment ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text className="text-[#FFFFFF] font-pbold text-center">
+                      💳 Thanh toán
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
+
+            {status !== "cancel" &&
+              status === "confirmed" &&
+              appointments?.package?.["payment-status"] === "unpaid" && (
+                <TouchableOpacity
+                  className="px-6 py-4 rounded-lg bg-red-500"
+                  onPress={() => setIsCancelModalVisible(true)}
+                  disabled={isCancelLoading}
+                >
+                  {isCancelLoading ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text className="text-white font-pbold text-center">
+                      🗑️ Hủy lịch hẹn
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              )}
 
             <View>
               <View className="flex-col justify-between">
@@ -691,43 +709,44 @@ const DetailAppointmentScreen = () => {
         </View>
         <View className="mb-10"></View>
 
-        <Modal visible={isModalVisible} transparent={true} animationType="fade">
+        <Modal
+          visible={isCancelModalVisible}
+          transparent={true}
+          animationType="slide"
+        >
           <View className="flex-1 justify-center items-center bg-black/50">
             <View className="bg-white p-6 rounded-lg w-[90%]">
-              <Image
-                source={{
-                  uri: isSuccess
-                    ? "https://encrypted-tbn0.gstatic.com/images?q=tbni:ANd9GcQQbY8UK-BaW-W8oLqpI_Hd2kBMdjW6Q3CKBg&s"
-                    : "https://cdn-icons-png.flaticon.com/512/6659/6659895.png",
-                }}
-                className="w-32 h-32 mx-auto mb-4 bg-white"
-              />
               <Text className="text-xl font-pbold text-center mb-4">
-                {isSuccess ? "Thành công!" : "Thất bại!"}
+                Xác nhận hủy lịch hẹn
               </Text>
-              <Text className="text-base text-gray-500 text-center mb-6">
-                {isSuccess
-                  ? "Thanh toán đã được thực hiện thành công."
-                  : "Đã có lỗi xảy ra khi thực hiện thanh toán."}
-              </Text>
-              {isSuccess ? (
-                <TouchableOpacity
-                  className="bg-[#64CBDB] py-3 px-6 rounded-lg"
-                  onPress={handleGoHome}
-                >
-                  <Text className="text-white font-pbold text-center">
-                    Về trang chủ
-                  </Text>
-                </TouchableOpacity>
+              {isCancelLoading ? (
+                <View className="flex justify-center items-center my-4">
+                  <ActivityIndicator size="large" color="#0000ff" />
+                </View>
               ) : (
-                <TouchableOpacity
-                  className="bg-[#64CBDB] py-3 px-6 rounded-lg"
-                  onPress={handleCloseModal}
-                >
-                  <Text className="text-white font-pbold text-center">
-                    Đóng
+                <>
+                  <Text className="text-base text-gray-500 mb-4 text-center">
+                    Bạn có chắc chắn muốn hủy lịch hẹn này không?
                   </Text>
-                </TouchableOpacity>
+                  <View className="flex-row justify-between">
+                    <TouchableOpacity
+                      className="flex-1 bg-gray-300 py-3 px-4 rounded-lg mr-2"
+                      onPress={() => setIsCancelModalVisible(false)}
+                    >
+                      <Text className="text-gray-800 font-pmedium text-center">
+                        Hủy
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      className="flex-1 bg-red-500 py-3 px-4 rounded-lg ml-2"
+                      onPress={handleCancelAppointment}
+                    >
+                      <Text className="text-white font-pmedium text-center">
+                        Xác nhận
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
               )}
             </View>
           </View>

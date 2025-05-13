@@ -15,7 +15,6 @@ import HeaderBack from "@/components/HeaderBack";
 import WheelScrollPicker from "react-native-wheel-scrollview-picker";
 import { CheckTimeNurse, ListNurseData } from "@/types/nurse";
 import { format, addMinutes, formatISO, subHours } from "date-fns";
-import nurseApiRequest from "@/app/api/nurseApi";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 
 const DateAvailableScreen = () => {
@@ -99,6 +98,7 @@ const DateAvailableScreen = () => {
         Number(totalDuration)
       );
       setListNurseData(response.payload.data || []);
+      
     } catch (error) {
       console.error("Error fetching nurses:", error);
       setListNurseData([]);
@@ -126,7 +126,7 @@ const DateAvailableScreen = () => {
             "est-duration": Number(totalDuration),
           };
         })
-        .filter((item) => item["est-start-date"]); 
+        .filter((item) => item["est-start-date"]);
 
       if (nursesDates.length === 0) {
         setCheckTime([]);
@@ -419,7 +419,7 @@ const DateAvailableScreen = () => {
             "nurse-name": nurseNames[index],
           };
         })
-        .filter((item) => item.date); // Filter out invalid dates
+        .filter((item) => item.date);
 
       if (appointmentData.length === 0) {
         Alert.alert("Lỗi", "Không có ngày hợp lệ để xác nhận.");

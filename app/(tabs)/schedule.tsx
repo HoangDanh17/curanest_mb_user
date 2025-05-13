@@ -24,6 +24,7 @@ export default function Schedule() {
     AppointmentListNurse[]
   >([]);
   const [selectName, setSelectName] = useState<string | null>();
+
   async function fetchPatientList() {
     try {
       const response = await patientApiRequest.getAllPatient();
@@ -89,7 +90,8 @@ export default function Schedule() {
     (appt) =>
       appt.status === "waiting" ||
       appt.status === "changed" ||
-      appt.status === "confirmed"
+      appt.status === "confirmed" ||
+      appt.status === "cancel"
   );
   const inProgressAppointments = appointmentsWithNurse.filter(
     (appt) => appt.status === "upcoming"

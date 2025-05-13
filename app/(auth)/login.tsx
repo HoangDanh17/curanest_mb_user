@@ -17,7 +17,6 @@ import { LoginBodyType } from "@/types/login";
 import authApiRequest from "@/app/api/authApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
-import { useSearch } from "@/app/provider";
 
 interface FormErrors {
   "phone-number": string;

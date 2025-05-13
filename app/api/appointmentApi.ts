@@ -67,10 +67,10 @@ const appointmentApiRequest = {
       `appointments/nursing-timesheet?nursing-id=${id}&est-date-from=${dateFrom}&est-date-to=${dateTo}`,
       {
         apiPrefix: "appointment",
-      } 
+      }
     ),
-  addMoreTask: (body: AddMoreAppointment) =>
-    http.post<AddMoreAppointmentRes>("cuspackage/add-more-custask", body, {
+  cancelAppointment: (id: string) =>
+    http.patch<CreateAppointmentRes>(`cuspackage/${id}/cancel`, null, {
       apiPrefix: "appointment",
     }),
 };
