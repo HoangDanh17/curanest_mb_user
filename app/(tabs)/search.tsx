@@ -48,41 +48,47 @@ const CategoryScreen = () => {
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 bg-white p-4 pb-0">
+    <SafeAreaView className="flex-1 bg-white">
+      <View className="p-4">
+        <View className="flex-row items-center mb-4">
+          <Ionicons name="medkit" size={28} color="#64D1CB" />
+          <Text className="ml-2 text-2xl font-pbold text-gray-800">
+            Tìm kiếm dịch vụ
+          </Text>
+        </View>
+
+        <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-4">
+          <Ionicons name="search" size={20} color="#888" />
+          <TextInput
+            value={searchText}
+            onChangeText={setSearchText}
+            placeholder="Tìm kiếm theo tên dịch vụ"
+            placeholderTextColor="#888"
+            onSubmitEditing={handleSearchSubmit}
+            className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
+          />
+        </View>
+      </View>
+
       {loading ? (
-        <View className="my-4 items-center">
+        <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#64D1CB" />
         </View>
       ) : searchResult !== null ? (
         searchResult.length > 0 ? (
           <ScrollView
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
             showsVerticalScrollIndicator={false}
           >
-            <View className="flex-row items-center mb-6">
-              <Ionicons name="medkit" size={28} color="#64D1CB" />
-              <Text className="ml-2 text-2xl font-pbold text-gray-800">
-                Tìm kiếm dịch vụ
-              </Text>
-            </View>
-
-            <View className="flex-row items-center border-2 border-black rounded-full px-4 mb-4">
-              <Ionicons name="search" size={20} color="#888" />
-              <TextInput
-                value={searchText}
-                onChangeText={setSearchText}
-                placeholder="Tìm kiếm theo tên dịch vụ"
-                placeholderTextColor="#888"
-                onSubmitEditing={handleSearchSubmit}
-                className="flex-1 text-base text-gray-600 ml-2 font-psemibold py-2"
-              />
-            </View>
-
             {searchResult.map((categoryGroup) => (
               <View key={categoryGroup["category-info"].id} className="mb-4">
                 <View className="flex-row items-center mb-4">
                   <Image
-                    source={{ uri: categoryGroup["category-info"].thumbnail }}
+                    source={{
+                      uri: categoryGroup["category-info"].thumbnail
+                        ? categoryGroup["category-info"].thumbnail
+                        : "",
+                    }}
                     className="w-6 h-6 rounded-full mr-2 bg-cyan-300"
                   />
                   <Text className="text-xl font-pbold text-gray-800">
@@ -90,11 +96,11 @@ const CategoryScreen = () => {
                   </Text>
                 </View>
 
-                <Text className="text-sm font-psemibold text-gray-400">
+                <Text className="text-sm font-psemibold text-gray-400 mb-2">
                   {categoryGroup["category-info"].description}
                 </Text>
 
-                <View className="flex-row flex-wrap mt-2">
+                <View className="flex-row flex-wrap">
                   {categoryGroup["list-services"].map((service) => (
                     <TouchableOpacity
                       key={service.id}
@@ -116,14 +122,18 @@ const CategoryScreen = () => {
             ))}
           </ScrollView>
         ) : (
-          <Text className="text-center mt-5 text-base text-gray-700">
-            Không tìm thấy kết quả
-          </Text>
+          <View className="flex-1 items-center justify-center">
+            <Text className="text-center text-base text-gray-700">
+              Không tìm thấy kết quả
+            </Text>
+          </View>
         )
       ) : (
-        <Text className="text-center mt-5 text-base text-gray-700">
-          Nhập tên dịch vụ để tìm kiếm.
-        </Text>
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-center text-base text-gray-700">
+            Nhập tên dịch vụ để tìm kiếm.
+          </Text>
+        </View>
       )}
     </SafeAreaView>
   );

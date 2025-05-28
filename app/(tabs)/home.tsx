@@ -166,6 +166,7 @@ const HomeScreen = () => {
         <View className="flex justify-center">
           <FlatList
             data={buttonData}
+            removeClippedSubviews={false}
             renderItem={({ item }) => (
               <ButtonMenu
                 icon={item.icon as keyof typeof MaterialIcons.glyphMap}

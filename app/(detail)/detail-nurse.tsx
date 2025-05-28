@@ -13,32 +13,30 @@ import HeaderBack from "@/components/HeaderBack";
 import { DayOfWeek, DetailNurse } from "@/types/nurse";
 import nurseApiRequest from "@/app/api/nurseApi";
 import appointmentApiRequest from "@/app/api/appointmentApi";
-import { AppointmentList } from "@/types/appointment";
+import { NurseSchedule } from "@/types/appointment";
+import { format, addDays, startOfDay } from "date-fns";
+
+const formatDateToYYYYMMDD = (date: Date): string => {
+  return format(date, "yyyy-MM-dd");
+};
 
 const DetailNurseScreen = () => {
   const { idNurse, id } = useLocalSearchParams();
-  console.log("🚀 ~ DetailNurseScreen ~ id:", id)
   const [detailData, setDetailData] = useState<DetailNurse>();
   const [twoWeekDays, setTwoWeekDays] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(false);
-  const [appointments, setAppointments] = useState<AppointmentList[]>([]);
+  const [appointments, setAppointments] = useState<NurseSchedule[]>([]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const formatDateToYYYYMMDD = (date: Date): string => {
-    return date.toISOString().split("T")[0];
-  };
+  const today = startOfDay(new Date());
 
   async function fetchAppointments(dateFrom: string, dateTo: string) {
     try {
-      const response = await appointmentApiRequest.getListAppointmentNurse(
+      const response = await appointmentApiRequest.getNurseDate(
         String(idNurse),
-        String(dateFrom),
-        String(dateTo)
+        dateFrom,
+        dateTo
       );
-
       setAppointments(response.payload.data);
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -58,21 +56,14 @@ const DetailNurseScreen = () => {
   };
 
   const initializeTwoWeeks = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const days: Date[] = [];
     for (let i = 0; i < 14; i++) {
-      const day = new Date(today);
-      day.setDate(today.getDate() + i);
+      const day = startOfDay(addDays(today, i));
       days.push(day);
     }
     setTwoWeekDays(days);
-
-    const dateFrom = formatDateToYYYYMMDD(new Date(today.getTime() + 43200000));
-    const dateTo = formatDateToYYYYMMDD(
-      new Date(days[days.length - 1].getTime() + 86400000)
-    );
-
+    const dateFrom = formatDateToYYYYMMDD(days[0]); 
+    const dateTo = formatDateToYYYYMMDD(days[days.length - 1]);
     fetchAppointments(dateFrom, dateTo);
   };
 
@@ -83,11 +74,13 @@ const DetailNurseScreen = () => {
 
   const hasAppointmentsForDate = (date: Date): boolean => {
     const dateString = formatDateToYYYYMMDD(date);
-    return appointments.some(
-      (appointment) =>
-        appointment["est-date"].split("T")[0] === dateString &&
-        appointment.status === "confirmed"
-    );
+    return appointments.some((appointment) => {
+      const appointmentDate = startOfDay(new Date(appointment["est-date"]));
+      const appointmentDateString = formatDateToYYYYMMDD(appointmentDate);
+      return (
+        appointmentDateString === dateString && appointment.status !== "cancel"
+      );
+    });
   };
 
   const handleSelectDate = (date: Date) => {
@@ -147,7 +140,7 @@ const DetailNurseScreen = () => {
 
             <View className="mt-4 w-full">
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
-                <Text className="text-md text-gray-500 font-pbold">
+                <Text className="text-md text-gray-700 font-pbold">
                   📍 Nơi làm việc
                 </Text>
                 <Text className="text-[#64D1CB] font-psemibold mb-2">
@@ -156,7 +149,7 @@ const DetailNurseScreen = () => {
               </View>
 
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
-                <Text className="text-md text-gray-500 font-pbold">
+                <Text className="text-md text-gray-700 font-pbold">
                   🕒 Kinh nghiệm
                 </Text>
                 <Text className="text-[#64D1CB] font-psemibold mb-2">
@@ -165,7 +158,7 @@ const DetailNurseScreen = () => {
               </View>
 
               <View className="border-b border-gray-300 pb-2 mb-2 gap-2">
-                <Text className="text-md text-gray-500 font-pbold">
+                <Text className="text-md text-gray-700 font-pbold">
                   📓 Học vấn
                 </Text>
                 <Text className="text-[#64D1CB] font-psemibold mb-2">
@@ -174,7 +167,7 @@ const DetailNurseScreen = () => {
               </View>
             </View>
 
-            <View className="bg-yellow-100 p-3 mt-4 rounded-md">
+            <View className="bg-yellow-100 p-3 mt-4 rounded-2xl">
               <Text className="text-yellow-700 text-center font-medium italic">
                 {detailData?.slogan}
               </Text>
@@ -182,15 +175,15 @@ const DetailNurseScreen = () => {
 
             <View className="mt-4">
               <Text className="text-gray-700 font-pbold">Dịch vụ:</Text>
-              <View className="mt-2 gap-2">
+              <View className="mt-2 gap-4">
                 {detailData?.certificate &&
                   detailData.certificate.split("-").map((service, index) => (
                     <View
                       key={index}
-                      className="bg-[#FEB60D] px-4 py-2 rounded-lg border border-[#FEB60D] shadow-md"
+                      className="bg-slate-100 px-4 py-2 rounded-lg border border-slate-100 shadow-md"
                     >
-                      <Text className="text-white text-sm font-psemibold">
-                        {service.trim()}
+                      <Text className="text-gray-700 text-sm font-psemibold">
+                        • {service.trim()}
                       </Text>
                     </View>
                   ))}
@@ -216,12 +209,12 @@ const DetailNurseScreen = () => {
               renderItem={({ item }) => {
                 const isSelected =
                   selectedDate &&
-                  item.toDateString() === selectedDate.toDateString();
+                  formatDateToYYYYMMDD(item) ===
+                    formatDateToYYYYMMDD(selectedDate);
                 const hasAppointment = hasAppointmentsForDate(item);
-                const isDisabled =
-                  item.getTime() < new Date().setHours(0, 0, 0, 0);
+                const isDisabled = item.getTime() < today.getTime();
                 const isToday =
-                  item.toDateString() === new Date().toDateString();
+                  formatDateToYYYYMMDD(item) === formatDateToYYYYMMDD(today);
 
                 return (
                   <TouchableOpacity
@@ -233,8 +226,8 @@ const DetailNurseScreen = () => {
                         : isSelected
                         ? "bg-[#64D1CB] border border-[#64D1CB]"
                         : hasAppointment
-                        ? "bg-green-100 border border-green-400" // Làm sáng nếu có lịch hẹn
-                        : "bg-white border border-gray-200"
+                        ? "bg-green-100 border border-green-400"
+                        : "bg-white on border border-gray-200"
                     }`}
                     style={{
                       width: 45,
@@ -252,9 +245,7 @@ const DetailNurseScreen = () => {
                           : "text-[#64D1CB]"
                       }`}
                     >
-                      {getDayOfWeek(
-                        item.toLocaleString("en-US", { weekday: "long" })
-                      )}
+                      {getDayOfWeek(format(item, "EEEE"))}
                     </Text>
                     <Text
                       className={`text-base font-bold mt-1 ${

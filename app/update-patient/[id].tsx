@@ -188,10 +188,7 @@ const UpdatePatientScreen = () => {
       });
       router.back();
     } catch (error: any) {
-      if (
-        error.payload.error.inner ===
-        "Error 1062 (23000): Duplicate entry '0999999999' for key 'patients.unique_phone'"
-      ) {
+      if (error.payload.error.inner.includes("Error 1062 (23000)")) {
         Toast.show({
           type: "error",
           text1: "Sửa hồ sơ thất bại",

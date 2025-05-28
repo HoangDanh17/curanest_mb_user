@@ -12,6 +12,10 @@ import * as Device from "expo-device";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { toastConfig } from "@/components/ToastConfig";
+import { AppointmentList } from "@/types/appointment";
+import appointmentApiRequest from "@/app/api/appointmentApi";
+import patientApiRequest from "@/app/api/patientApi";
+import { Patient } from "@/types/patient";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -22,6 +26,28 @@ Notifications.setNotificationHandler({
 });
 
 SplashScreen.preventAutoHideAsync();
+
+export async function fetchAppointmentDetail(
+  id: string
+): Promise<AppointmentList | null> {
+  try {
+    const response = await appointmentApiRequest.getAppointmentNoti(id);
+    return response.payload.data[0];
+  } catch (error) {
+    console.error("Error fetching appointment detail:", error);
+    return null;
+  }
+}
+
+export async function fetchPatientName(id: string): Promise<Patient | null> {
+  try {
+    const response = await patientApiRequest.getPatientById(id);
+    return response.payload.data;
+  } catch (error) {
+    console.error("Error fetching appointment detail:", error);
+    return null;
+  }
+}
 
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === "android") {
@@ -69,7 +95,7 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
-type AppScreen = "/(tabs)/schedule" | "/(auth)/login";
+type AppScreen = "/(tabs)/schedule" | "/(auth)/login" | "/(tabs)/home";
 
 export default function RootLayout() {
   const [fontsLoaded, error] = useFonts({
@@ -85,6 +111,7 @@ export default function RootLayout() {
   });
 
   const [isMounted, setIsMounted] = useState(false);
+  const [isInitialNavigationDone, setIsInitialNavigationDone] = useState(false);
   const notificationListener = useRef<Notifications.Subscription>();
   const responseListener = useRef<Notifications.Subscription>();
   const appState = useRef(AppState.currentState);
@@ -101,30 +128,65 @@ export default function RootLayout() {
 
   useEffect(() => {
     const checkAuthStatus = async () => {
+      if (!isMounted || isInitialNavigationDone) {
+        return;
+      }
+      try {
+        const accessToken = await AsyncStorage.getItem("accessToken");
+        if (accessToken) {
+          router.replace("/(tabs)/home");
+        } else {
+          router.replace("/(auth)/login");
+        }
+        setIsInitialNavigationDone(true);
+      } catch (error) {
+        router.replace("/(auth)/login");
+        setIsInitialNavigationDone(true);
+      }
+    };
+
+    const handleNotificationNavigation = async (
+      screen: AppScreen,
+      id: string
+    ) => {
       if (!isMounted) {
         return;
       }
       try {
         const accessToken = await AsyncStorage.getItem("accessToken");
         if (accessToken) {
-          router.navigate("/(tabs)/home");
+          if (screen === "/(tabs)/home") {
+            router.replace("/(tabs)/home");
+          } else {
+            const appointment = await fetchAppointmentDetail(id);
+            if (appointment) {
+              const patientName = await fetchPatientName(
+                appointment["patient-id"]
+              );
+              router.replace({
+                pathname: screen,
+                params: {
+                  id: appointment.id,
+                  packageId: appointment["cuspackage-id"] || "",
+                  nurseId: appointment["nursing-id"] || "",
+                  patientId: appointment["patient-id"] || "",
+                  date: appointment["est-date"] || "",
+                  status: appointment.status || "",
+                  actTime: appointment["act-date"] || "",
+                  selectName: String(patientName?.["full-name"]),
+                },
+              });
+            } else {
+              router.replace("/(tabs)/home");
+            }
+          }
         } else {
-          router.navigate("/(auth)/login");
+          router.replace("/(auth)/login");
         }
+        setIsInitialNavigationDone(true);
       } catch (error) {
-        router.navigate("/(auth)/login");
-      }
-    };
-
-    const handleNotificationNavigation = async (screen: AppScreen) => {
-      if (!isMounted) {
-        return;
-      }
-      try {
-        const accessToken = await AsyncStorage.getItem("accessToken");
-        router.navigate(accessToken ? screen : "/(auth)/login");
-      } catch (error) {
-        router.navigate("/(auth)/login");
+        router.replace("/(auth)/login");
+        setIsInitialNavigationDone(true);
       }
     };
 
@@ -134,8 +196,11 @@ export default function RootLayout() {
         const screen = response.notification.request.content.data.screen as
           | AppScreen
           | undefined;
+        const id = response.notification.request.content.data[
+          "sub-id"
+        ] as string;
         if (screen) {
-          await handleNotificationNavigation(screen);
+          await handleNotificationNavigation(screen, id);
           return;
         }
       }
@@ -163,8 +228,11 @@ export default function RootLayout() {
           const screen = response.notification.request.content.data.screen as
             | AppScreen
             | undefined;
+          const id = response.notification.request.content.data[
+            "sub-id"
+          ] as string;
           if (screen) {
-            await handleNotificationNavigation(screen);
+            await handleNotificationNavigation(screen, id);
           }
         }
       );

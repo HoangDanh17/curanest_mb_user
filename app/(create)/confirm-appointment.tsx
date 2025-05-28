@@ -54,7 +54,6 @@ const ConfirmScreen = () => {
 
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const fetchInvoice = async (svcpackageId: string) => {
     try {

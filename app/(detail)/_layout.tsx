@@ -14,8 +14,13 @@ const DetailLayout = () => {
         name="detail-appointment"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="detail-appointmentHistory"
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="detail-nurse" options={{ headerShown: false }} />
       <Stack.Screen name="detail-schedule" options={{ headerShown: false }} />
+      <Stack.Screen name="detail-payment" options={{ headerShown: false }} />
       <Stack.Screen name="list-nurse" options={{ headerShown: false }} />
       <Stack.Screen
         name="detail-notification"

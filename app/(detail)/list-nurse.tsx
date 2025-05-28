@@ -23,7 +23,6 @@ import { ListNurseData } from "@/types/nurse";
 
 const ListNurseScreen = () => {
   const { serviceName, id } = useLocalSearchParams();
-  console.log("🚀 ~ ListNurseScreen ~ id:", String(id));
   const [nurseSearch, setNurseSearch] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);

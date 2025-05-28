@@ -28,6 +28,7 @@ const screenConfigs: Record<string, NativeStackNavigationOptions> = {
   "payment-history": {
     ...commonHeaderOptions,
     headerTitle: "Lịch sử thanh toán",
+    headerShown: false,
   },
 };
 

@@ -37,11 +37,6 @@ const DetailScheduleListScreen = () => {
         format(currentDate, "yyyy-MM-dd"),
         format(nextDate, "yyyy-MM-dd")
       );
-      console.log(
-        "🚀 ~ fetchNurseDateTime ~ response.payload.data:",
-        response.payload?.data
-      );
-
       if (response.payload?.data) {
         const schedules: NurseSchedule[] = response.payload.data;
         const transformedSchedules: ScheduleItem[] = schedules

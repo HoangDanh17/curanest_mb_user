@@ -14,8 +14,15 @@ import { Calendar } from "react-native-calendars";
 import HeaderBack from "@/components/HeaderBack";
 import WheelScrollPicker from "react-native-wheel-scrollview-picker";
 import { CheckTimeNurse, ListNurseData } from "@/types/nurse";
-import { format, addMinutes, formatISO, subHours } from "date-fns";
+import {
+  format,
+  addMinutes,
+  formatISO,
+  subHours,
+  isWithinInterval,
+} from "date-fns";
 import appointmentApiRequest from "@/app/api/appointmentApi";
+import { AppointmentList } from "@/types/appointment";
 
 const DateAvailableScreen = () => {
   const {
@@ -29,9 +36,13 @@ const DateAvailableScreen = () => {
     discount,
   } = useLocalSearchParams();
   const nurseData = nurseInfo ? JSON.parse(nurseInfo as string) : null;
+  const patientData = patient ? JSON.parse(patient as string) : null;
   const [listNurseData, setListNurseData] = useState<ListNurseData[]>([]);
   const [checkTime, setCheckTime] = useState<CheckTimeNurse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [conflictingAppointments, setConflictingAppointments] = useState<
+    string[]
+  >([]);
 
   const duration = Number(totalDuration) || 0;
   const numDays = Math.max(Number(day), 1);
@@ -67,6 +78,7 @@ const DateAvailableScreen = () => {
   const [tempHour, setTempHour] = useState<string>("08");
   const [tempMinute, setTempMinute] = useState<string>("00");
   const [pickerKey, setPickerKey] = useState<number>(0);
+  const [appointments, setAppointments] = useState<AppointmentList[]>([]);
 
   const hours: string[] = Array.from({ length: 14 }, (_, i) =>
     String(i + 8).padStart(2, "0")
@@ -82,6 +94,46 @@ const DateAvailableScreen = () => {
     }
   };
 
+  async function fetchAppointments() {
+    try {
+      if (!nurseData) {
+        setConflictingAppointments([]);
+        setAppointments([]);
+        return;
+      }
+
+      const date = new Date();
+      const response = await appointmentApiRequest.getCheckDuplicateAppointment(
+        String(patientData.id),
+        String(format(date, "yyyy-MM-dd"))
+      );
+      const appointmentsData = response.payload.data || [];
+      setAppointments(appointmentsData);
+
+      const conflicts: string[] = [];
+      dates.forEach((date, index) => {
+        const startTime = date;
+        const endTime = addMinutes(date, duration);
+
+        appointmentsData.forEach((appt: AppointmentList) => {
+          const apptStart = new Date(appt["est-date"]);
+          const apptEnd = addMinutes(apptStart, appt["total-est-duration"]);
+          const isOverlapping =
+            isWithinInterval(startTime, { start: apptStart, end: apptEnd }) ||
+            isWithinInterval(endTime, { start: apptStart, end: apptEnd }) ||
+            (startTime <= apptStart && endTime >= apptEnd);
+
+          if (isOverlapping) {
+            conflicts.push(`Ngày ${index + 1} (${formatSelectedDate(date)})`);
+          }
+        });
+      });
+      setConflictingAppointments(() => [...new Set(conflicts)]);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      setConflictingAppointments([]);
+    }
+  }
   const fetchListNurse = async (date: string) => {
     try {
       const parsedDate = new Date(date);
@@ -98,7 +150,6 @@ const DateAvailableScreen = () => {
         Number(totalDuration)
       );
       setListNurseData(response.payload.data || []);
-      
     } catch (error) {
       console.error("Error fetching nurses:", error);
       setListNurseData([]);
@@ -239,7 +290,7 @@ const DateAvailableScreen = () => {
     if (minute) setTempMinute(minute);
   }, 200);
 
-  const handleTimeSelect = (index: number) => {
+  const handleTimeSelect = async (index: number) => {
     try {
       const newDates = [...dates];
       const [hours, minutes] = [parseInt(tempHour), parseInt(tempMinute)];
@@ -249,13 +300,19 @@ const DateAvailableScreen = () => {
       setTempHour("08");
       setTempMinute("00");
       setPickerKey((prev) => prev + 1);
+      if (patient) {
+        await fetchAppointments();
+      }
     } catch (error) {
       console.error("Error selecting time:", error);
       Alert.alert("Lỗi", "Không thể cập nhật thời gian. Vui lòng thử lại.");
     }
   };
 
-  const handleDateSelect = (index: number, day: { dateString: string }) => {
+  const handleDateSelect = async (
+    index: number,
+    day: { dateString: string }
+  ) => {
     try {
       const selectedDate = new Date(day.dateString);
       if (isNaN(selectedDate.getTime())) {
@@ -321,6 +378,9 @@ const DateAvailableScreen = () => {
       setDates(newDates);
       setCalendarModalVisible(false);
       setSelectedDateIndex(null);
+      if (patient) {
+        await fetchAppointments();
+      }
     } catch (error) {
       console.error("Error selecting date:", error);
       Alert.alert("Lỗi", "Không thể cập nhật ngày. Vui lòng thử lại.");
@@ -358,12 +418,15 @@ const DateAvailableScreen = () => {
     }
   };
 
-  const handleNurseSelect = (nurseName: string) => {
+  const handleNurseSelect = async (nurseName: string) => {
     try {
       if (selectedNurseIndex !== null) {
         const newNurseNames = [...nurseNames];
         newNurseNames[selectedNurseIndex] = nurseName;
         setNurseNames(newNurseNames);
+        if (patient) {
+          await fetchAppointments();
+        }
       }
       setNurseModalVisible(false);
       setSelectedNurseIndex(null);
@@ -426,6 +489,7 @@ const DateAvailableScreen = () => {
         return;
       }
 
+      // Chuyển hướng trực tiếp mà không kiểm tra conflictingAppointments
       router.push({
         pathname: "/(create)/confirm-appointment",
         params: {
@@ -440,6 +504,8 @@ const DateAvailableScreen = () => {
     } catch (error) {
       console.error("Error confirming appointment:", error);
       Alert.alert("Lỗi", "Không thể xác nhận lịch hẹn. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -497,6 +563,9 @@ const DateAvailableScreen = () => {
           : check
           ? check["is-availability"]
           : false;
+        const isConflicting = conflictingAppointments.includes(
+          `Ngày ${index + 1} (${formatSelectedDate(date)})`
+        );
 
         return (
           <View
@@ -582,6 +651,12 @@ const DateAvailableScreen = () => {
                 {!isLoading && !isAvailable && (
                   <Text className="text-red-500 text-sm mt-2">
                     Vui lòng {nurseInfo ? "đổi điều dưỡng hoặc " : ""}giờ khác.
+                  </Text>
+                )}
+                {!isLoading && isAvailable && isConflicting && (
+                  <Text className="text-orange-500 text-sm mt-2">
+                    Lịch này trùng với lịch hiện có của điều dưỡng. Vui lòng
+                    chọn điều dưỡng hoặc giờ khác, hoặc tiếp tục đặt.
                   </Text>
                 )}
               </View>

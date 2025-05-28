@@ -63,7 +63,6 @@ const AppointmentHistoryScreen = () => {
     }
   }, [selectedProfile]);
 
-  // Lọc appointment theo ngày được chọn
   const filteredAppointments = appointments.filter((appointment) => {
     if (!selectedDate) return true;
     const appointmentDate = new Date(appointment["est-date"]).toDateString();
@@ -80,7 +79,6 @@ const AppointmentHistoryScreen = () => {
     }, 2000);
   };
 
-  // Xử lý khi chọn ngày từ date picker
   const handleDateChange = (event: any, selected: Date | undefined) => {
     setShowDatePicker(Platform.OS === "ios");
     if (event.type === "dismissed" || !selected) {
@@ -89,18 +87,15 @@ const AppointmentHistoryScreen = () => {
     setSelectedDate(selected);
   };
 
-  // Xóa ngày đã chọn
   const clearDate = () => {
     setSelectedDate(null);
   };
 
-  // Format ngày hiển thị
   const formatDate = (date: Date | null) => {
     if (!date) return "Tìm theo ngày";
     return date.toLocaleDateString("vi-VN");
   };
 
-  // Xử lý khi nhấn nút chọn ngày
   const handleShowDatePicker = () => {
     if (!selectedProfile) {
       alert("Vui lòng chọn hồ sơ bệnh nhân trước!");
@@ -111,7 +106,6 @@ const AppointmentHistoryScreen = () => {
 
   return (
     <View className="flex-1 p-4 px-2 bg-white">
-      {/* Danh sách bệnh nhân */}
       <View className="bg-white pb-2">
         <ScrollView
           horizontal
@@ -172,10 +166,9 @@ const AppointmentHistoryScreen = () => {
         )}
       </View>
 
-      {/* Date Picker */}
       {showDatePicker && selectedProfile && (
         <View className="w-4/5 self-center">
-          <DateTimePicker 
+          <DateTimePicker
             value={selectedDate || new Date()}
             mode="date"
             display={Platform.OS === "ios" ? "inline" : "calendar"}
@@ -184,7 +177,6 @@ const AppointmentHistoryScreen = () => {
         </View>
       )}
 
-      {/* Danh sách appointment */}
       {isLoading ? (
         <View className="flex justify-center items-center my-4">
           <ActivityIndicator size="large" color="#0000ff" />
@@ -245,8 +237,14 @@ const AppointmentHistoryScreen = () => {
                   <TouchableOpacity
                     className="bg-teal-400 px-4 py-2 rounded-lg"
                     onPress={() => {
+                      const selectedPatient = patientList.find(
+                        (patient) => patient.id === selectedProfile
+                      );
+                      const patientName = selectedPatient
+                        ? selectedPatient["full-name"]
+                        : "";
                       router.push({
-                        pathname: "/detail-appointment",
+                        pathname: "/detail-appointmentHistory",
                         params: {
                           id: String(appointment.id),
                           packageId: appointment["cuspackage-id"],
@@ -254,6 +252,8 @@ const AppointmentHistoryScreen = () => {
                           patientId: appointment["patient-id"],
                           date: appointment["est-date"],
                           status: appointment.status,
+                          actTime: appointment["act-date"],
+                          selectName: patientName,
                         },
                       });
                     }}

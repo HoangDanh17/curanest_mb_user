@@ -1,16 +1,26 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import IconTime from "@/assets/icon/clock-arrow-up.png";
 import { MaterialIcons } from "@expo/vector-icons";
 import { addMinutes, format } from "date-fns";
 import { AppointmentCardProps, Status, StatusStyle } from "@/types/appointment";
 import { router } from "expo-router";
+
+const STATUS_STYLES_PAYMENT: Record<
+  string,
+  { textColor: string; backgroundColor: string; label: string }
+> = {
+  paid: {
+    textColor: "text-emerald-800",
+    backgroundColor: "bg-emerald-100",
+    label: "Đã thanh toán",
+  },
+  unpaid: {
+    textColor: "text-amber-800",
+    backgroundColor: "bg-amber-100",
+    label: "Chưa thanh toán",
+  },
+};
 
 const COLOR_MAP: Record<string, string> = {
   "text-amber-600": "#d97706",
@@ -52,7 +62,7 @@ export const STATUS_STYLES: Record<Status, StatusStyle> = {
     borderColor: "border-2 border-violet-500",
     label: "Chờ đổi điều dưỡng",
   },
-   cancel: {
+  cancel: {
     backgroundColor: "bg-red-50",
     textColor: "text-red-600",
     borderColor: "border-2 border-red-500",
@@ -79,8 +89,10 @@ const AppointmentCard = ({
   duration,
   actTime,
   selectName,
+  isPay,
 }: AppointmentCardProps) => {
   const statusStyle = STATUS_STYLES[status] || DEFAULT_STATUS_STYLE;
+  const paymentStyle = isPay ? STATUS_STYLES_PAYMENT.paid : STATUS_STYLES_PAYMENT.unpaid;
   const formattedDate = format(time, "dd/MM/yyyy");
   const formattedTime = format(time, "HH:mm a");
 
@@ -137,29 +149,38 @@ const AppointmentCard = ({
       onPress={handleClick}
       className={`bg-white rounded-xl p-4 mx-4 my-2 shadow-sm ${statusStyle.borderColor}`}
     >
-      <View
-        className={`self-start ${statusStyle.backgroundColor} px-3 py-1 rounded-full mb-3 flex-row items-center`}
-      >
-        <Text className={`text-xs ${statusStyle.textColor} font-pbold mr-2`}>
-          {statusStyle.label} -
-        </Text>
-        <View className="flex-row items-center">
-          <MaterialIcons
-            name="calendar-today"
-            size={16}
-            color={
-              (statusStyle.textColor && COLOR_MAP[statusStyle.textColor]) ||
-              "#4b5563"
-            }
-            style={{ marginRight: 6 }}
-          />
-          <Text className={`text-sm font-psemibold ${statusStyle.textColor}`}>
-            {formattedDate}
+      <View className="flex-col items-start mb-3 gap-2">
+        <View
+          className={`self-start ${statusStyle.backgroundColor} px-3 py-1 rounded-full flex-row items-center mr-2`}
+        >
+          <Text className={`text-xs ${statusStyle.textColor} font-pbold mr-2`}>
+            {statusStyle.label} -
+          </Text>
+          <View className="flex-row items-center">
+            <MaterialIcons
+              name="calendar-today"
+              size={16}
+              color={
+                (statusStyle.textColor && COLOR_MAP[statusStyle.textColor]) ||
+                "#4b5563"
+              }
+              style={{ marginRight: 6 }}
+            />
+            <Text className={`text-sm font-psemibold ${statusStyle.textColor}`}>
+              {formattedDate}
+            </Text>
+          </View>
+        </View>
+        <View
+          className={`${paymentStyle.backgroundColor} px-3 py-1 rounded-full flex-row items-center`}
+        >
+          <Text className={`text-xs ${paymentStyle.textColor} font-pbold`}>
+            {paymentStyle.label}
           </Text>
         </View>
       </View>
 
-      <View className="flex flex-row items-center mb-3">
+      <View className="flex flex-row items-center">
         {renderAvatar()}
         <View className="ml-3 flex-1">
           <Text className="text-base font-pbold text-gray-800">

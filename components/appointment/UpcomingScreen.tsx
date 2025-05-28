@@ -103,6 +103,7 @@ const UpcomingScreen = ({ appointment, selectName }: AppointmentProps) => {
             duration={item["total-est-duration"]}
             status={item.status}
             selectName={String(selectName)}
+            isPay={item["is-paid"]}
           />
         )}
         renderSectionHeader={({ section: { title } }) => {

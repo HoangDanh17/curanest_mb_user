@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import HeaderBack from "@/components/HeaderBack";
 import { router, useLocalSearchParams } from "expo-router";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 import { AppointmentDetail, GetReport } from "@/types/appointment";
@@ -254,23 +255,6 @@ const DetailAppointmentScreen = () => {
     fetchData();
   }, [medicalReport?.id]);
 
-  useEffect(() => {
-    const handleBackPress = () => {
-      router.push("/(tabs)/schedule");
-      return true;
-    };
-
-    if (Platform.OS === "android") {
-      BackHandler.addEventListener("hardwareBackPress", handleBackPress);
-    }
-
-    return () => {
-      if (Platform.OS === "android") {
-        BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
-      }
-    };
-  }, []);
-
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "upcoming":
@@ -394,12 +378,7 @@ const DetailAppointmentScreen = () => {
   return (
     <SafeAreaView className="bg-white p-4">
       <ScrollView showsVerticalScrollIndicator={false}>
-        <TouchableOpacity
-          onPress={() => router.push("/(tabs)/schedule")}
-          className="rounded-full mt-2"
-        >
-          <Ionicons name="chevron-back" size={30} color="#64C1DB" />
-        </TouchableOpacity>
+        <HeaderBack />
         <View className="flex-1 items-center relative">
           {detailNurseData ? (
             <Image

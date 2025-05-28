@@ -9,7 +9,6 @@ export type Status =
   | "changed"
   | "cancel";
 
-
 export interface StatusStyle {
   backgroundColor?: string;
   textColor?: string;
@@ -29,6 +28,7 @@ export type AppointmentCardProps = {
   patientId: string;
   actTime: string | null;
   selectName: string;
+  isPay: boolean;
 };
 
 export type CreateAppointment = {
@@ -66,6 +66,7 @@ export type AppointmentList = {
   "est-date": string;
   "act-date": string;
   status: Status;
+  "is-paid": boolean;
   "total-est-duration": number;
   "created-at": string;
 };
@@ -81,6 +82,7 @@ export type AppointmentListNurse = {
   "est-date": string;
   "act-date": string;
   status: Status;
+  "is-paid": boolean;
   "total-est-duration": number;
   "created-at": string;
   nurse: ListNurseData | null;
@@ -215,7 +217,7 @@ export type NurseScheduleRes = {
 };
 
 export type AddMoreAppointment = {
-  "appointment-id": "string",
+  "appointment-id": "string";
   "task-infos": {
     "client-note": string;
     "est-duration": number;

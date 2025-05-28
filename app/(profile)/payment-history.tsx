@@ -6,17 +6,20 @@ import {
   ActivityIndicator,
   Pressable,
   Platform,
+  BackHandler,
+  TouchableOpacity,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Patient } from "@/types/patient";
 import patientApiRequest from "@/app/api/patientApi";
 import appointmentApiRequest from "@/app/api/appointmentApi";
 import { InvoiceList } from "@/types/invoice";
 import { format, isSameDay } from "date-fns";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import invoiceApiRequest from "@/app/api/invoiceApi";
+import { router } from "expo-router";
 
-// Định nghĩa style cho trạng thái
-const STATUS_STYLES: Record<
+export const STATUS_STYLES: Record<
   string,
   { textColor: string; backgroundColor: string; label: string }
 > = {
@@ -38,6 +41,39 @@ const PaymentHistoryScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [patientList, setPatientList] = useState<Patient[]>([]);
   const [invoiceList, setInvoiceList] = useState<InvoiceList[]>([]);
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+
+  const handlePayment = async (packageId: string) => {
+    try {
+      setPaymentLoading(packageId);
+      if (!packageId) return;
+      const response = await invoiceApiRequest.getInvoice(String(packageId));
+      const invoiceData = response.payload.data[0];
+
+      if (invoiceData) {
+        router.push({
+          pathname: "/(detail)/payment",
+          params: {
+            id: String(invoiceData["cuspackage-id"]),
+            qrCode: String(invoiceData["qr-code"]),
+          },
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching invoice:", error);
+    } finally {
+      setPaymentLoading(null);
+    }
+  };
+
+  const handleViewDetails = async (packageId: string) => {
+    router.push({
+      pathname: "/detail-payment",
+      params: {
+        id: String(packageId),
+      },
+    });
+  };
 
   async function fetchPatientList() {
     try {
@@ -89,7 +125,6 @@ const PaymentHistoryScreen = () => {
     return format(date, "HH:mm dd/MM/yyyy");
   };
 
-  // Xử lý khi chọn ngày từ date picker
   const handleDateChange = (event: any, selected: Date | undefined) => {
     setShowDatePicker(Platform.OS === "ios");
     if (event.type === "dismissed" || !selected) {
@@ -98,24 +133,21 @@ const PaymentHistoryScreen = () => {
     setSelectedDate(selected);
   };
 
-  // Xóa ngày đã chọn
   const clearDate = () => {
     setSelectedDate(null);
   };
 
-  // Format ngày hiển thị
   const formatDate = (date: Date | null) => {
     if (!date) return "Tìm theo ngày";
     return date.toLocaleDateString("vi-VN");
   };
 
-  // Xử lý khi nhấn nút chọn ngày
   const handleShowDatePicker = () => {
     setShowDatePicker(true);
   };
 
   const filteredData = invoiceList.filter((item) => {
-    const invoiceDate = new Date(item["created-at"]); // Điều chỉnh +7 tiếng
+    const invoiceDate = new Date(item["created-at"]);
     return !selectedDate || isSameDay(invoiceDate, selectedDate);
   });
 
@@ -128,9 +160,32 @@ const PaymentHistoryScreen = () => {
     backgroundColor: "white",
   };
 
+  useEffect(() => {
+    const handleBackPress = () => {
+      router.push("/(tabs)/profile");
+      return true;
+    };
+
+    if (Platform.OS === "android") {
+      BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+    }
+
+    return () => {
+      if (Platform.OS === "android") {
+        BackHandler.removeEventListener("hardwareBackPress", handleBackPress);
+      }
+    };
+  }, []);
+
   return (
     <View className="flex-1 bg-gray-100">
       <View className="p-4">
+        <TouchableOpacity
+          onPress={() => router.push("/(tabs)/profile")}
+          className="rounded-full mt-4"
+        >
+          <Ionicons name="chevron-back" size={30} color="#64C1DB" />
+        </TouchableOpacity>
         <View className="flex-row justify-end gap-2">
           <Pressable style={buttonStyle} onPress={handleShowDatePicker}>
             <Text className="text-sm text-gray-800">
@@ -193,7 +248,7 @@ const PaymentHistoryScreen = () => {
                     />
                   </View>
 
-                  <View className="flex-1">
+                  <View className="flex-1 gap-2">
                     <View className="flex w-auto items-start">
                       <Text
                         className={`text-md font-bold inline-flex items-center p-2 px-4 rounded-full ${
@@ -225,9 +280,37 @@ const PaymentHistoryScreen = () => {
                     </Text>
                   </View>
                 </View>
+
+                <View className="flex-row justify-center mt-4 gap-4">
+                  {invoice.status === "unpaid" && (
+                    <Pressable
+                      className="bg-amber-500 rounded-lg px-4 py-2"
+                      onPress={() => handlePayment(invoice["cuspackage-id"])}
+                      disabled={paymentLoading === invoice["cuspackage-id"]}
+                    >
+                      {paymentLoading === invoice["cuspackage-id"] ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text className="text-white font-bold text-sm">
+                          Thanh toán ngay
+                        </Text>
+                      )}
+                    </Pressable>
+                  )}
+
+                  <Pressable
+                    className="bg-blue-500 rounded-lg px-4 py-2"
+                    onPress={() => handleViewDetails(invoice["cuspackage-id"])}
+                  >
+                    <Text className="text-white font-bold text-sm">
+                      Xem chi tiết
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             ))
           )}
+          <View className="mb-10"></View>
         </ScrollView>
       )}
     </View>

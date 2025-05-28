@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Alert,
+  Platform,
 } from "react-native";
 import Logo from "../../assets/images/logo-app.png";
 import { Link, router } from "expo-router";
@@ -17,10 +18,75 @@ import { LoginBodyType } from "@/types/login";
 import authApiRequest from "@/app/api/authApi";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
 
 interface FormErrors {
   "phone-number": string;
   password: string;
+}
+
+export async function registerForPushNotificationsAsync() {
+  const issues: string[] = [];
+
+  if (Platform.OS === "android") {
+    try {
+      await Notifications.setNotificationChannelAsync("curanest_channel", {
+        name: "CuraNest Notifications",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#4A90E2",
+      });
+    } catch (e: any) {
+      issues.push("Failed to set Android notification channel: " + e.message);
+    }
+  }
+
+  if (!Device.isDevice) {
+    issues.push(
+      "App is running on a simulator/emulator. Push notifications require a physical device."
+    );
+    return { token: null, issues };
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== "granted") {
+    issues.push(
+      "Notification permissions not granted. Please enable notifications in device settings."
+    );
+    return { token: null, issues };
+  }
+
+  const projectId =
+    Constants?.expoConfig?.extra?.eas?.projectId ??
+    Constants?.easConfig?.projectId;
+  if (!projectId) {
+    issues.push(
+      "Missing projectId in app.json or app.config.js. Please configure expo.extra.eas.projectId."
+    );
+    return { token: null, issues };
+  }
+
+  try {
+    const pushTokenString = (
+      await Notifications.getExpoPushTokenAsync({ projectId })
+    ).data;
+    try {
+      await AsyncStorage.setItem("expoPushToken", pushTokenString);
+    } catch (e: any) {
+      issues.push("Failed to store push token in AsyncStorage: " + e.message);
+    }
+    return { token: pushTokenString, issues };
+  } catch (e: any) {
+    issues.push("Failed to fetch push token: " + e.message);
+    return { token: null, issues };
+  }
 }
 
 const LoginScreen: React.FC = () => {
@@ -44,7 +110,8 @@ const LoginScreen: React.FC = () => {
   const phoneNumberInputAnimation = useRef(new Animated.Value(-300)).current;
   const passwordInputAnimation = useRef(new Animated.Value(-300)).current;
   const buttonAnimation = useRef(new Animated.Value(-300)).current;
-  const [token1, setToken] = useState<string>();
+  const [token1, setToken] = useState<string | null>();
+  const hasFetchedToken = useRef(false);
 
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneRegex = /^(0[1|3|5|7|8|9])+([0-9]{8})\b/;
@@ -95,10 +162,18 @@ const LoginScreen: React.FC = () => {
     return !phoneNumberError && !passwordError;
   };
 
-  const handleGetToken = async () => {
-    const pushToken = await AsyncStorage.getItem("expoPushToken");
-    setToken(String(pushToken));
-  };
+  const handleGetToken = useCallback(async () => {
+    if (hasFetchedToken.current) {
+      return;
+    }
+    hasFetchedToken.current = true;
+    try {
+      const result = await registerForPushNotificationsAsync();
+      setToken(result.token);
+    } catch (error: any) {
+      setToken(null);
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!isFormValid()) {
@@ -106,7 +181,6 @@ const LoginScreen: React.FC = () => {
     }
     try {
       setLoading(true);
-      const pushToken = await AsyncStorage.getItem("expoPushToken");
       const loginPayload = {
         ...form,
         "push-token": token1,

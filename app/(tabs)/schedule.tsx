@@ -12,6 +12,7 @@ import { AppointmentList, AppointmentListNurse } from "@/types/appointment";
 import nurseApiRequest from "@/app/api/nurseApi";
 import { ListNurseData } from "@/types/nurse";
 import { useFocusEffect } from "expo-router";
+import UnpaymentScreen from "@/components/appointment/UnpaymentScreen";
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -85,7 +86,9 @@ export default function Schedule() {
       setAppointmentsWithNurse(updatedAppointments);
     }
   }, [appointments, searchResult]);
-
+  const unpaymentAppointments = appointmentsWithNurse.filter(
+    (appt) => appt["is-paid"] === false
+  );
   const upcomingAppointments = appointmentsWithNurse.filter(
     (appt) =>
       appt.status === "waiting" ||
@@ -154,7 +157,7 @@ export default function Schedule() {
         <Tab.Navigator
           screenOptions={{
             tabBarLabelStyle: {
-              fontSize: 12,
+              fontSize: 10,
               textTransform: "none",
               fontWeight: 700,
             },
@@ -163,11 +166,26 @@ export default function Schedule() {
           }}
         >
           <Tab.Screen
+            name="Unpayment"
+            options={{
+              title: `Chưa thanh toán (${unpaymentAppointments.length})`,
+              tabBarIndicatorStyle: { backgroundColor: "#FFAD60" },
+              tabBarActiveTintColor: "#FFAD60",
+            }}
+          >
+            {() => (
+              <UnpaymentScreen
+                appointment={unpaymentAppointments}
+                selectName={String(selectName)}
+              />
+            )}
+          </Tab.Screen>
+          <Tab.Screen
             name="Upcoming"
             options={{
               title: `Đang chờ (${upcomingAppointments.length})`,
-              tabBarIndicatorStyle: { backgroundColor: "#FFAD60" },
-              tabBarActiveTintColor: "#FFAD60",
+              tabBarIndicatorStyle: { backgroundColor: "#6092ff" },
+              tabBarActiveTintColor: "#6092ff",
             }}
           >
             {() => (

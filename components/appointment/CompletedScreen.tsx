@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  View,
-  FlatList,
-  Text,
-  StyleSheet,
-  Image,
-} from "react-native";
+import { View, FlatList, Text, StyleSheet, Image } from "react-native";
 import AppointmentCard from "@/components/AppointmentCard";
 import { AppointmentProps } from "@/components/appointment/UpcomingScreen";
 
@@ -30,6 +24,7 @@ const CompletedScreen = ({ appointment, selectName }: AppointmentProps) => {
               patientId={item["patient-id"]}
               duration={item["total-est-duration"]}
               selectName={String(selectName)}
+              isPay={item["is-paid"]}
             />
           </View>
         )}

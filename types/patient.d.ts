@@ -1,13 +1,13 @@
 export interface Patient {
   id: string;
   "full-name": string;
+  gender: boolean;
   dob: string;
   "phone-number": string;
   address: string;
   ward: string;
   district: string;
   city: string;
-  gender: boolean;
   "desc-pathology": string;
   "note-for-nurse": string;
 }
@@ -27,6 +27,11 @@ export interface CreatePatient {
 export type PatientRes = {
   status: number;
   data: Patient[];
+};
+
+export type PatientByIdRes = {
+  status: number;
+  data: Patient;
 };
 
 export type CreatePatientRes = {

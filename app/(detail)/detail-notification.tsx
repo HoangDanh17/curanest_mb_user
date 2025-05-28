@@ -9,12 +9,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { format } from "date-fns";
-import { RelativePathString, router, useFocusEffect } from "expo-router";
+import {router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import HeaderBack from "@/components/HeaderBack";
 import { useSearch } from "@/app/provider";
 import { NotiListType } from "@/types/noti";
 import notiApiRequest from "@/app/api/notiApi";
+import { fetchAppointmentDetail, fetchPatientName } from "@/app/_layout";
+type Route = "/(tabs)/home" | "/detail-appointment";
 
 const NotificationsScreen = () => {
   const { userData } = useSearch();
@@ -33,15 +35,42 @@ const NotificationsScreen = () => {
     }
   }
 
-  const markAsRead = async (id: string, route: RelativePathString ) => {
+  const markAsRead = async (id: string, subId: string, route: Route) => {
     try {
       await notiApiRequest.updateNoti(id);
       setNotiList((prev) =>
         prev.map((noti) =>
-          noti.id === id ? { ...noti, "read-at": new Date().toISOString() } : noti
+          noti.id === id
+            ? { ...noti, "read-at": new Date().toISOString() }
+            : noti
         )
       );
-      if (route) {
+      const result = await fetchAppointmentDetail(subId);
+      if (route !== "/(tabs)/home" && result) {
+        if (route === "/detail-appointment") {
+          const patientName = await fetchPatientName(result["patient-id"]);
+          router.push({
+            pathname: route,
+            params: {
+              id: result.id,
+              packageId: result["cuspackage-id"] || "",
+              nurseId: result["nursing-id"] || "",
+              patientId: result["patient-id"] || "",
+              date: result["est-date"] || "",
+              status: result.status || "",
+              actTime: result["act-date"] || "",
+              selectName: String(patientName?.["full-name"]) || "",
+            },
+          });
+        } else {
+          router.push({
+            pathname: route,
+            params: {
+              id: result["cuspackage-id"],
+            },
+          });
+        }
+      } else {
         router.push(route);
       }
     } catch (error) {
@@ -52,7 +81,7 @@ const NotificationsScreen = () => {
   const renderNotificationItem = ({ item }: { item: NotiListType }) => {
     return (
       <Pressable
-        onPress={() => markAsRead(item.id, item.route)}
+        onPress={() => markAsRead(item.id, item["sub-id"], item.route)}
         className="mx-4 my-2 p-4 bg-white rounded-lg shadow-md flex-row items-center"
       >
         <View className="mr-4">
@@ -63,23 +92,22 @@ const NotificationsScreen = () => {
           />
         </View>
         <View className="flex-1">
-          <View className="flex-row justify-between items-center">
+          <View className="flex-col justify-start ">
             <Text
               className={`text-lg font-pbold ${
                 item["read-at"] ? "text-gray-500" : "text-gray-800"
               }`}
             >
-              {item.content.split(":")[0] || "Thông báo"}
+              {"Thông báo"}
             </Text>
             <Text className="text-xs font-psemibold text-gray-400">
               {format(new Date(item["created-at"]), "dd/MM/yyyy")}
             </Text>
           </View>
           <Text
-            className={`text-md font-psemibold ${
+            className={`text-md font-psemibold flex-wrap ${
               item["read-at"] ? "text-gray-400" : "text-gray-600"
             } mt-1`}
-            numberOfLines={2}
           >
             {item.content}
           </Text>

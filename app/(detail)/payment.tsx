@@ -8,7 +8,6 @@ import { Invoice } from "@/types/invoice";
 const MyQRCode = () => {
   const { id, qrCode } = useLocalSearchParams();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
   const fetchInvoice = async (svcpackageId: string) => {
     try {
       const response = await invoiceApiRequest.getInvoice(String(svcpackageId));
@@ -28,13 +27,31 @@ const MyQRCode = () => {
         router.push("/(tabs)/schedule");
       }
     };
-    intervalRef.current = setInterval(checkInvoiceStatus, 5000);
+
+    if (id && qrCode) {
+      intervalRef.current = setInterval(checkInvoiceStatus, 5000);
+    }
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [id]);
+  }, [id, qrCode]);
+
+  if (!qrCode) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Mã QR bị lỗi</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.push("/(tabs)/schedule")}
+        >
+          <Text style={styles.backButtonText}>Quay về lịch</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -81,6 +98,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     marginBottom: 20,
+  },
+  errorText: {
+    fontSize: 20,
+    color: "red",
+    marginBottom: 20,
+    textAlign: "center",
   },
 });
 

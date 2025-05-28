@@ -1,15 +1,12 @@
-import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   Image,
   ImageBackground,
-  TouchableOpacity,
   ScrollView,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import ProfileButton from "@/components/ProfileButton";
 import { ProfileHeaderProps } from "@/types/profile";
 import Color from "@/assets/images/gradient.png";
@@ -25,32 +22,19 @@ export type UserData = {
   role: string;
 };
 
-const getInitial = (name?: string) => {
-  if (!name) return "";
-  const parts = name.split(" ");
-  return parts[parts.length - 1].charAt(0).toUpperCase();
-};
-
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   name,
   phone,
-  avatar,
 }) => {
-  const initial = getInitial(name);
-
   return (
     <View>
       <View className="items-center">
-        {avatar ? (
-          <Image
-            source={{ uri: avatar }}
-            className="w-[100px] h-[100px] rounded-full border-[6px] border-white top-[-50]"
-          />
-        ) : (
-          <View className="w-[100px] h-[100px] rounded-full border-[6px] border-white top-[-50] bg-cyan-500 items-center justify-center">
-            <Text className="text-4xl text-white font-bold">{initial}</Text>
-          </View>
-        )}
+        <Image
+          source={{
+            uri: "https://media.istockphoto.com/id/1390616702/vector/senior-man-avatar-smiling-elderly-man-with-beard-with-gray-hair-3d-vector-people-character.jpg?s=612x612&w=0&k=20&c=CwU892ELqQlY65Xrnmo2N-pb9AE4xEXcp5gAJ6WpKJg=",
+          }}
+          className="w-[100px] h-[100px] rounded-full border-[2px] border-white top-[-50]"
+        />
       </View>
       <View className="top-[-50] items-center">
         <Text className="text-lg font-pbold mb-2 text-[#67e4f8]">{name}</Text>

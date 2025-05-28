@@ -1,7 +1,5 @@
 import http from "@/lib/http";
 import {
-  AddMoreAppointment,
-  AddMoreAppointmentRes,
   AppointmentDetailRes,
   AppointmentListRes,
   CreateAppointment,
@@ -22,11 +20,26 @@ const appointmentApiRequest = {
     http.get<AppointmentListRes>(`appointments?patient-id=${id}`, {
       apiPrefix: "appointment",
     }),
+  getAppointmentNoti: (id: string) =>
+    http.get<AppointmentListRes>(`appointments?id=${id}`, {
+      apiPrefix: "appointment",
+    }),
+  getAppointmentPaymentDetail: (id: string) =>
+    http.get<AppointmentListRes>(`appointments?cuspackage-id=${id}`, {
+      apiPrefix: "appointment",
+    }),
+  getCheckDuplicateAppointment: (id: string, dateFrom: string) =>
+    http.get<AppointmentListRes>(
+      `appointments?patient-id=${id}&est-date-from=${dateFrom}`,
+      {
+        apiPrefix: "appointment",
+      }
+    ),
   getListAppointmentNurse: (id: string, dateFrom?: string, dateTo?: string) =>
     http.get<AppointmentListRes>(
-      `appointments?nurse-id=${id}${dateFrom && `&est-date-from=${dateFrom}`}${
-        dateTo && `&est-date-to=${dateTo}`
-      }`,
+      `appointments?nursing-id=${id}${
+        dateFrom && `&est-date-from=${dateFrom}`
+      }${dateTo && `&est-date-to=${dateTo}`}`,
       {
         apiPrefix: "appointment",
       }
